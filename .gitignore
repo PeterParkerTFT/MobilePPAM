@@ -124,3 +124,4 @@ dist
 
 # macOS
 .DS_Store
+.npm-cache
