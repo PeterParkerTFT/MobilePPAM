@@ -11,46 +11,46 @@ interface BottomNavProps {
 
 export function BottomNav({ activeTab, onTabChange, userRole }: BottomNavProps) {
   const colors = useThemeColors();
-  
+
   const tabs = [
     {
       id: 'turnos' as const,
       label: 'Turnos',
       icon: Calendar,
-      allowedRoles: ['admin', 'capitan', 'voluntario', 'ultraadmin']
+      allowedRoles: [UserRole.AdminLocal, UserRole.AdminGlobal, UserRole.Capitan, UserRole.Voluntario]
     },
     {
       id: 'mis-turnos' as const,
       label: 'Mis Turnos',
       icon: Hand,
-      allowedRoles: ['admin', 'capitan', 'voluntario', 'ultraadmin']
+      allowedRoles: [UserRole.AdminLocal, UserRole.AdminGlobal, UserRole.Capitan, UserRole.Voluntario]
     },
     {
       id: 'voluntarios' as const,
       label: 'Voluntarios',
       icon: Users,
-      allowedRoles: ['admin', 'capitan', 'ultraadmin']
+      allowedRoles: [UserRole.AdminLocal, UserRole.AdminGlobal, UserRole.Capitan]
     },
     {
       id: 'aprobaciones' as const,
       label: 'Aprobaciones',
       icon: UserCheck,
-      allowedRoles: ['admin', 'ultraadmin']
+      allowedRoles: [UserRole.AdminLocal, UserRole.AdminGlobal]
     },
     {
       id: 'ajustes' as const,
       label: 'Ajustes',
       icon: Settings,
-      allowedRoles: ['admin', 'ultraadmin']
+      allowedRoles: [UserRole.AdminLocal, UserRole.AdminGlobal]
     }
   ];
 
   const visibleTabs = tabs.filter(tab => tab.allowedRoles.includes(userRole));
 
   return (
-    <div 
+    <div
       className="fixed bottom-0 left-0 right-0 border-t z-40 theme-transition"
-      style={{ 
+      style={{
         backgroundColor: `rgb(${colors.bg.header})`,
         borderColor: `rgb(${colors.ui.divider})`,
         boxShadow: '0 -1px 3px rgba(0,0,0,0.05)'
@@ -61,27 +61,27 @@ export function BottomNav({ activeTab, onTabChange, userRole }: BottomNavProps) 
           {visibleTabs.map((tab) => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.id;
-            
+
             return (
               <button
                 key={tab.id}
                 onClick={() => onTabChange(tab.id)}
                 className="flex flex-col items-center gap-1 py-2 px-3 min-w-[70px] transition-all hover:opacity-80"
               >
-                <Icon 
+                <Icon
                   className="w-6 h-6"
-                  style={{ 
-                    color: isActive 
-                      ? `rgb(${colors.interactive.primary})` 
+                  style={{
+                    color: isActive
+                      ? `rgb(${colors.interactive.primary})`
                       : `rgb(${colors.text.tertiary})`,
                     strokeWidth: isActive ? 2.5 : 2
                   }}
                 />
-                <span 
+                <span
                   className="text-xs"
-                  style={{ 
-                    color: isActive 
-                      ? `rgb(${colors.interactive.primary})` 
+                  style={{
+                    color: isActive
+                      ? `rgb(${colors.interactive.primary})`
                       : `rgb(${colors.text.secondary})`,
                     fontWeight: isActive ? '600' : '400'
                   }}
@@ -92,13 +92,13 @@ export function BottomNav({ activeTab, onTabChange, userRole }: BottomNavProps) 
             );
           })}
         </div>
-        
+
         {/* iPhone-style home indicator */}
         <div className="flex justify-center mt-2">
-          <div 
+          <div
             className="w-32 h-1 rounded-full"
-            style={{ 
-              backgroundColor: `rgb(${colors.ui.disabled})` 
+            style={{
+              backgroundColor: `rgb(${colors.ui.disabled})`
             }}
           ></div>
         </div>
