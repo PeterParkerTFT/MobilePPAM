@@ -65,6 +65,7 @@ export function BottomNav({ activeTab, onTabChange, userRole }: BottomNavProps) 
             return (
               <button
                 key={tab.id}
+                id={`nav-${tab.id}`}
                 onClick={() => onTabChange(tab.id)}
                 className="flex flex-col items-center gap-1 py-2 px-3 min-w-[70px] transition-all hover:opacity-80"
               >

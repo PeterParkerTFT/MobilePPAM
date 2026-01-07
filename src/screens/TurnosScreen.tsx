@@ -201,6 +201,7 @@ export function TurnosScreen({ user, onLogout, turnos, capitanes, onInscripcion,
                   return (
                     <div
                       key={turno.id}
+                      id={filteredTurnos.indexOf(turno) === 0 ? 'tour-turno-card' : undefined}
                       onClick={() => setSelectedTurno(turno)}
                       className="rounded-lg p-3 flex items-center gap-3 cursor-pointer hover:opacity-90 transition-all theme-transition"
                       style={{
@@ -211,7 +212,7 @@ export function TurnosScreen({ user, onLogout, turnos, capitanes, onInscripcion,
                     >
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1">
-                          <EventBadge tipo={turno.tipo} variant="compact" showImage />
+                          <EventBadge tipo={turno.tipo || 'fijo'} variant="compact" showImage />
                           {isInscrito && (
                             <span className="text-green-500 text-sm">✓</span>
                           )}

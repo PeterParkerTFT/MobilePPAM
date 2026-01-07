@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ThemeProvider } from './contexts/ThemeContext';
-import { useUser, UserProvider } from './contexts/UserContext'; // Modified: Added UserProvider import
+import { useUser, UserProvider } from './contexts/UserContext';
 import { LoginScreen } from './screens/LoginScreen';
 import { TurnosScreen } from './screens/TurnosScreen';
 import { TurnosScreenCapitan } from './screens/TurnosScreenCapitan';
@@ -11,25 +11,49 @@ import { AprobacionesScreen } from './screens/AprobacionesScreen';
 import { InformesScreen } from './screens/InformesScreen';
 import { AjustesScreen } from './screens/AjustesScreen';
 import { BottomNav } from './components/BottomNav';
-import { User, Turno, Capitan } from './types/models';
+import { User, TurnoSesion, Capitan } from './types/models'; // Updated to TurnoSesion
 import { UserRole, EnumHelpers } from './types/enums';
-import { mockTurnos, mockCapitanes } from './data/mockData';
+// import { mockTurnos, mockCapitanes } from './data/mockData'; // Removed mock data
+import { TurnoService } from './services/TurnoService'; // [NEW]
+import { CongregacionService } from './services/CongregacionService'; // [NEW]
+
+// Singleton services
+const turnoService = new TurnoService();
+const congregacionService = new CongregacionService();
 
 function AppContent() {
   const { currentUser, login, logout } = useUser();
   const [activeTab, setActiveTab] = useState<'turnos' | 'mis-turnos' | 'voluntarios' | 'aprobaciones' | 'ajustes' | 'informes'>('turnos');
-  const [turnos, setTurnos] = useState<Turno[]>(mockTurnos);
-  const [capitanes] = useState<Capitan[]>(mockCapitanes);
+
+  // State for real data
+  const [turnos, setTurnos] = useState<TurnoSesion[]>([]); // Use TurnoSesion
+  const [capitanes] = useState<Capitan[]>([]); // Capitanes fetch not implemented yet in this step, keeping empty for now or could implement CapitanService
+
+  // Fetch data on load
+  useEffect(() => {
+    if (currentUser) {
+      loadTurnos();
+    }
+  }, [currentUser]);
+
+  const loadTurnos = async () => {
+    try {
+      // If user has a congregation, we could filter. For now fetch all or filter by user's cong
+      const data = await turnoService.getTurnosDisponibles(currentUser?.congregacion);
+      setTurnos(data);
+    } catch (e) {
+      console.error("Error loading turnos", e);
+    }
+  };
 
   const handleLogin = (user: User) => {
     login(user);
-    // Navegar a la vista por defecto según el rol
     if (EnumHelpers.isAdmin(user.role)) {
-      setActiveTab('turnos'); // Admin/Ultra Admin → Vista de gestión completa
+      setActiveTab('turnos');
     } else if (user.role === UserRole.Capitan) {
-      setActiveTab('turnos'); // Capitán → Vista de capitán
+      setActiveTab('turnos');
     } else {
-      setActiveTab('turnos'); // Voluntario → Vista de voluntario
+      setActiveTab('turnos');
     }
   };
 
@@ -53,23 +77,29 @@ function AppContent() {
     }
   };
 
-  const handleInscripcion = (turnoId: string, userId: string) => {
+  const handleInscripcion = async (turnoId: string, userId: string) => {
+    // 1. Optimistic UI Update
     setTurnos(turnos.map(turno => {
-      if (turno.id === turnoId && turno.cupoActual < turno.cupoMaximo) {
+      if (turno.id === turnoId && turno.cupoActual < (turno.voluntariosMax || 0)) {
+        const cupoMax = turno.voluntariosMax || turno.cupoMaximo || 0;
         const nuevoCupo = turno.cupoActual + 1;
         const nuevoEstado =
-          nuevoCupo >= turno.cupoMaximo ? 'completo' :
-            nuevoCupo >= turno.cupoMaximo * 0.8 ? 'limitado' : 'disponible';
+          nuevoCupo >= cupoMax ? 'completo' :
+            nuevoCupo >= cupoMax * 0.8 ? 'limitado' : 'disponible';
 
         return {
           ...turno,
           cupoActual: nuevoCupo,
-          voluntariosInscritos: [...turno.voluntariosInscritos, userId],
-          estado: nuevoEstado
+          voluntariosInscritos: [...(turno.voluntariosInscritos || []), userId],
+          estado: nuevoEstado as any
         };
       }
       return turno;
     }));
+
+    // 2. Call Service
+    // In a real app we'd revert if this fails
+    await turnoService.inscribirse(turnoId, userId, new Date().toISOString().split('T')[0]);
   };
 
   if (!currentUser) {
@@ -162,11 +192,14 @@ function AppContent() {
 import { ReloadPrompt } from './ReloadPrompt';
 import { Toaster } from './components/ui/sonner';
 
+import { AppTour } from './components/AppTour';
+
 export default function App() {
   return (
     <ThemeProvider>
       <Toaster />
       <ReloadPrompt />
+      <AppTour />
       <AppContent />
     </ThemeProvider>
   );

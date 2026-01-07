@@ -6,30 +6,30 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { Church, Search, Check, ChevronDown, X } from 'lucide-react';
-import { Congregacion } from '../data/congregaciones';
+import { Congregacion } from '../types/models';
 
 interface CongregationComboboxProps {
   /** Congregaciones disponibles */
   congregaciones: Congregacion[];
-  
+
   /** ID de congregación seleccionada */
   value: string;
-  
+
   /** Callback cuando cambia la selección */
   onChange: (congregacionId: string) => void;
-  
+
   /** Placeholder del input */
   placeholder?: string;
-  
+
   /** Si el campo es requerido */
   required?: boolean;
-  
+
   /** Si el campo está deshabilitado */
   disabled?: boolean;
-  
+
   /** Mensaje de ayuda */
   helperText?: string;
-  
+
   /** Clase CSS adicional */
   className?: string;
 }
@@ -56,7 +56,7 @@ export function CongregationCombobox({
   const [isOpen, setIsOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [highlightedIndex, setHighlightedIndex] = useState(0);
-  
+
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -70,8 +70,8 @@ export function CongregationCombobox({
 
     return (
       cong.nombre.toLowerCase().includes(query) ||
-      cong.ciudad.toLowerCase().includes(query) ||
-      cong.estado.toLowerCase().includes(query)
+      (cong.ciudad?.toLowerCase() || '').includes(query) ||
+      (cong.estado?.toLowerCase() || '').includes(query)
     );
   });
 
@@ -115,7 +115,7 @@ export function CongregationCombobox({
         if (!isOpen) {
           setIsOpen(true);
         } else {
-          setHighlightedIndex(prev => 
+          setHighlightedIndex(prev =>
             prev < filteredCongregaciones.length - 1 ? prev + 1 : 0
           );
         }
@@ -124,7 +124,7 @@ export function CongregationCombobox({
       case 'ArrowUp':
         e.preventDefault();
         if (isOpen) {
-          setHighlightedIndex(prev => 
+          setHighlightedIndex(prev =>
             prev > 0 ? prev - 1 : filteredCongregaciones.length - 1
           );
         }
@@ -158,7 +158,7 @@ export function CongregationCombobox({
   // Toggle dropdown
   const handleToggle = () => {
     if (disabled) return;
-    
+
     if (!isOpen) {
       setIsOpen(true);
       setTimeout(() => inputRef.current?.focus(), 100);
@@ -180,10 +180,10 @@ export function CongregationCombobox({
       <div
         className={`
           relative border-b-2 transition-all cursor-pointer
-          ${disabled 
-            ? 'bg-[#F7F7F7] border-[#E0E0E0] opacity-60 cursor-not-allowed' 
-            : isOpen 
-              ? 'bg-white border-[#594396]' 
+          ${disabled
+            ? 'bg-[#F7F7F7] border-[#E0E0E0] opacity-60 cursor-not-allowed'
+            : isOpen
+              ? 'bg-white border-[#594396]'
               : 'bg-[#F7F7F7] border-[#E0E0E0] hover:border-[#999999]'
           }
         `}
@@ -246,8 +246,8 @@ export function CongregationCombobox({
                 <X className="w-4 h-4 text-[#666666]" strokeWidth={2} />
               </button>
             )}
-            
-            <ChevronDown 
+
+            <ChevronDown
               className={`w-5 h-5 text-[#666666] transition-transform ${isOpen ? 'rotate-180' : ''}`}
               strokeWidth={1.5}
             />
@@ -283,14 +283,14 @@ export function CongregationCombobox({
                     `}
                   >
                     <div className="flex items-center gap-3 flex-1 min-w-0">
-                      <Church 
+                      <Church
                         className="w-4 h-4 flex-shrink-0"
                         style={{ color: isSelected ? '#594396' : '#999999' }}
                         strokeWidth={1.5}
                       />
-                      
+
                       <div className="flex-1 min-w-0">
-                        <div 
+                        <div
                           className="font-medium truncate"
                           style={{ color: isSelected ? '#594396' : '#333333' }}
                         >
@@ -303,8 +303,8 @@ export function CongregationCombobox({
                     </div>
 
                     {isSelected && (
-                      <Check 
-                        className="w-5 h-5 text-[#594396] flex-shrink-0" 
+                      <Check
+                        className="w-5 h-5 text-[#594396] flex-shrink-0"
                         strokeWidth={2}
                       />
                     )}

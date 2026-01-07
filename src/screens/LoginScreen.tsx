@@ -1,12 +1,13 @@
-import React, { useState } from 'react';
-import { User } from '../types/models';
+import React, { useState, useEffect } from 'react';
+import { User, Congregacion } from '../types/models'; // Added Congregacion
 import { UserRole, UserStatus } from '../types/enums';
 import { UserPlus, Lock, X, AlertCircle } from 'lucide-react';
-import { congregaciones } from '../data/congregaciones';
+// import { congregaciones } from '../data/congregaciones'; // Removed static import
 import { CongregationCombobox } from '../components/CongregationCombobox';
 import { useUser } from '../contexts/UserContext';
-// import { UserService, MockUserRepository } from '../services/userService'; // Ya no se necesita instanciar aquí
+import { CongregacionService } from '../services/CongregacionService'; // [NEW]
 
+const congregacionService = new CongregacionService();
 
 interface LoginScreenProps {
   onLogin: (user: User) => void;
@@ -18,6 +19,18 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
   const { userService } = useUser();
   const [viewState, setViewState] = useState<ViewState>('split');
   const [selectedRole, setSelectedRole] = useState<UserRole>(UserRole.Voluntario);
+
+  // Real data state
+  const [congregacionesList, setCongregacionesList] = useState<Congregacion[]>([]);
+
+  useEffect(() => {
+    loadCongregaciones();
+  }, []);
+
+  const loadCongregaciones = async () => {
+    const data = await congregacionService.findAll();
+    setCongregacionesList(data);
+  };
 
   // Signup form state
   const [signupForm, setSignupForm] = useState({
@@ -259,7 +272,7 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
                 {/* Congregación (TODOS los roles excepto Voluntario) */}
                 {(signupForm.role === UserRole.Capitan || signupForm.role === UserRole.AdminLocal || signupForm.role === UserRole.AdminGlobal) && (
                   <CongregationCombobox
-                    congregaciones={congregaciones}
+                    congregaciones={congregacionesList}
                     value={signupForm.congregacion}
                     onChange={(value) => setSignupForm({ ...signupForm, congregacion: value })}
                     required

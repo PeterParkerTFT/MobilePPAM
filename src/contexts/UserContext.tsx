@@ -26,12 +26,18 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     const [currentUser, setCurrentUser] = useState<User | null>(null);
     const [isLoading, setIsLoading] = useState<boolean>(true);
 
-    // Load user from storage on mount (simulated)
+    // Load user from storage on mount
     useEffect(() => {
         const loadSession = async () => {
-            // Here you would check localStorage or a session cookie
-            // const storedUser = localStorage.getItem('user');
-            // if (storedUser) setCurrentUser(JSON.parse(storedUser));
+            const storedUser = localStorage.getItem('user');
+            if (storedUser) {
+                try {
+                    setCurrentUser(JSON.parse(storedUser));
+                } catch (e) {
+                    console.error('Error parsing stored user', e);
+                    localStorage.removeItem('user');
+                }
+            }
             setIsLoading(false);
         };
         loadSession();
@@ -39,12 +45,13 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
 
     const login = (user: User) => {
         setCurrentUser(user);
-        // localStorage.setItem('user', JSON.stringify(user));
+        localStorage.setItem('user', JSON.stringify(user));
     };
 
     const logout = () => {
         setCurrentUser(null);
-        // localStorage.removeItem('user');
+        localStorage.removeItem('user');
+        window.location.reload(); // Force reload to clear any other state
     };
 
     const value = {

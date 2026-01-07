@@ -30,7 +30,7 @@ export interface User {
   congregacionNombre?: string;       // Nombre de congregación (denormalizado para performance)
   grupoAsignado?: string;
   capitanId?: string;
-  
+
   // Auditoría
   createdAt?: string;
   updatedAt?: string;
@@ -80,24 +80,8 @@ export interface Capitan {
 /**
  * Turno/Evento PPAM
  */
-export interface Turno {
-  id: string;
-  tipo: EventType;
-  titulo: string;
-  descripcion: string;
-  fecha: string;
-  horaInicio: string;
-  horaFin: string;
-  cupoMaximo: number;
-  cupoActual: number;
-  capitanId: string | null;
-  capitanNombre: string | null;
-  grupoWhatsApp: string;
-  ubicacion: string;
-  voluntariosInscritos: string[];
-  estado: 'disponible' | 'limitado' | 'completo';
-  necesitaCapitan?: boolean;
-}
+// Old Turno interface removed
+
 
 /**
  * Resultado de operaciones administrativas
@@ -107,4 +91,80 @@ export interface OperationResult<T = void> {
   data?: T;
   error?: string;
   metadata?: AuditMetadata;
+}
+
+// ==========================================
+// NUEVOS MODELOS (DATA ARCHITECTURE)
+// ==========================================
+
+export interface Congregacion {
+  id: string;
+  nombre: string;
+  circuito?: string;
+  ciudad?: string;
+  estado: string; // [NEW] Added for UI compatibility
+}
+
+export interface Sitio {
+  id: string;
+  nombre: string;
+  direccion?: string;
+  coordenadas?: string;
+  tipo: 'caminata' | 'fijo';
+  congregacionId: string;
+}
+
+/**
+ * Representa el horario "maestro" de un turno
+ * (Ej: Lunes 8am, Plaza)
+ */
+export interface TurnoBase {
+  id: string;
+  dia: string; // 'Lunes', 'Martes'...
+  horarioInicio: string; // '08:00'
+  horarioFin: string; // '10:00'
+  sitioId: string;
+  sitioNombre?: string; // Denormalizado para UI
+  capitanId?: string;
+  capitanNombre?: string;
+  voluntariosMax: number;
+}
+
+/**
+ * Representa un turno en un día específico con asignaciones
+ */
+export interface TurnoSesion extends TurnoBase {
+  fecha: string; // '2024-10-25'
+  cupoActual: number;
+  estado: 'disponible' | 'limitado' | 'completo'; // Added 'limitado'
+  misTurno?: boolean; // Si el usuario actual está inscrito
+
+  // UI / Compatibilidad Legacy
+  voluntariosInscritos: string[];
+  cupoMaximo?: number; // Alias de voluntariosMax
+  titulo?: string;
+  descripcion?: string;
+  horaInicio?: string;
+  horaFin?: string;
+  tipo?: 'caminata' | 'fijo';
+  ubicacion?: string;
+  grupoWhatsApp?: string;
+}
+
+// Alias para compatibilidad con componentes existentes
+// Alias para compatibilidad con componentes existentes
+export type Turno = TurnoSesion;
+
+export interface Informe {
+  id: string;
+  userId: string;
+  mes: number;
+  anio: number;
+  horas: number;
+  publicaciones: number;
+  videos: number;
+  revisitas: number;
+  cursos: number;
+  observaciones?: string;
+  estado: 'borrador' | 'enviado' | 'aprobado';
 }
