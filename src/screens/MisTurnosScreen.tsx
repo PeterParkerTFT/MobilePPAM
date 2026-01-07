@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { User, Turno } from '../types/models';
+import { EventType } from '../types/enums';
 import { Calendar, MapPin, Clock, Users, MessageCircle, Phone, X, ChevronRight, AlertCircle } from 'lucide-react';
 import { HeaderWithTheme } from '../components/HeaderWithTheme';
 import { EventBadge } from '../components/EventBadge';
@@ -25,10 +26,13 @@ export function MisTurnosScreen({ user, onLogout, turnos, onNavigateToInformes }
       fecha: '2026-01-10',
       horaInicio: '09:00',
       horaFin: '12:00',
-      tipo: 'expositores',
+      tipo: EventType.Expositores,
       ubicacion: 'Plaza Principal',
       cupoActual: 8,
       cupoMaximo: 10,
+      capitanId: 'cap1',
+      voluntariosInscritos: ['user1'],
+      estado: 'disponible' as const,
       capitan: {
         nombre: 'Hno. Carlos Méndez',
         telefono: '+52 555 123 4567'
@@ -43,10 +47,13 @@ export function MisTurnosScreen({ user, onLogout, turnos, onNavigateToInformes }
       fecha: '2026-01-12',
       horaInicio: '10:00',
       horaFin: '12:30',
-      tipo: 'guias',
+      tipo: EventType.Guias,
       ubicacion: 'Colonia Norte',
       cupoActual: 12,
       cupoMaximo: 15,
+      capitanId: 'cap2',
+      voluntariosInscritos: ['user1'],
+      estado: 'disponible' as const,
       capitan: {
         nombre: 'Hno. Juan Torres',
         telefono: '+52 555 234 5678'
@@ -61,10 +68,13 @@ export function MisTurnosScreen({ user, onLogout, turnos, onNavigateToInformes }
       fecha: '2026-01-15',
       horaInicio: '16:00',
       horaFin: '18:00',
-      tipo: 'escuelas',
+      tipo: EventType.Escuelas,
       ubicacion: 'Salón del Reino',
       cupoActual: 5,
       cupoMaximo: 8,
+      capitanId: 'cap3',
+      voluntariosInscritos: ['user1'],
+      estado: 'disponible' as const,
       capitan: {
         nombre: 'Hna. María López',
         telefono: '+52 555 345 6789'

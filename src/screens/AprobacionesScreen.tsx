@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { User } from '../types/models';
+import { UserRole } from '../types/enums';
 import { HeaderWithTheme } from '../components/HeaderWithTheme';
 import { useThemeColors } from '../hooks/useThemeColors';
 import { UserCheck, X, Check, Clock, AlertCircle, Church } from 'lucide-react';
@@ -70,7 +71,7 @@ export function AprobacionesScreen({ user, onLogout, onNavigateToInformes }: Apr
   const colors = useThemeColors();
 
   // Solo admin y ultraadmin pueden ver esta pantalla
-  if (user.role !== 'admin' && user.role !== 'ultraadmin') {
+  if (user.role !== UserRole.AdminLocal && user.role !== UserRole.AdminGlobal) {
     return (
       <div
         className="min-h-screen pb-24 flex items-center justify-center p-4 theme-transition"
@@ -88,7 +89,7 @@ export function AprobacionesScreen({ user, onLogout, onNavigateToInformes }: Apr
   }
 
   // Filtrar solicitudes según el tipo de admin
-  const solicitudesFiltradas = user.role === 'ultraadmin'
+  const solicitudesFiltradas = user.role === UserRole.AdminGlobal
     ? solicitudes // Ultra admin ve todas las solicitudes
     : solicitudes.filter(s => s.congregacion === user.congregacion); // Admin normal solo ve de su congregación
 
@@ -136,13 +137,13 @@ export function AprobacionesScreen({ user, onLogout, onNavigateToInformes }: Apr
           <div
             className="px-3 py-1.5 rounded-full text-xs font-medium inline-flex items-center gap-1.5"
             style={{
-              backgroundColor: user.role === 'ultraadmin'
+              backgroundColor: user.role === UserRole.AdminGlobal
                 ? 'rgba(220, 38, 38, 0.15)'
                 : 'rgba(107, 87, 184, 0.15)',
-              color: user.role === 'ultraadmin' ? '#dc2626' : `rgb(${colors.interactive.primary})`
+              color: user.role === UserRole.AdminGlobal ? '#dc2626' : `rgb(${colors.interactive.primary})`
             }}
           >
-            {user.role === 'ultraadmin' ? (
+            {user.role === UserRole.AdminGlobal ? (
               <>
                 <AlertCircle className="w-3.5 h-3.5" strokeWidth={2} />
                 Ultra Admin - Todas las Congregaciones
@@ -444,4 +445,3 @@ export function AprobacionesScreen({ user, onLogout, onNavigateToInformes }: Apr
     </div>
   );
 }
-```
