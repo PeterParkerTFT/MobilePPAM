@@ -1,0 +1,102 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    /* Light Theme - INSPIRADO EN JW LIBRARY */
+    --bg-primary: 239, 239, 244;      /* Gris muy claro */
+    --bg-secondary: 255, 255, 255;    /* Blanco puro */
+    --bg-tertiary: 229, 229, 234;     /* Gris claro para chips */
+    --bg-header: 249, 249, 251;       /* Casi blanco */
+    
+    --text-primary: 28, 28, 30;       /* Casi negro */
+    --text-secondary: 107, 107, 112;  /* Gris medio */
+    --text-tertiary: 174, 174, 178;   /* Gris claro */
+    --text-inverse: 255, 255, 255;    /* Blanco */
+    --text-accent: 107, 87, 184;      /* VIOLETA JW Library */
+    
+    --ui-border: 209, 209, 214;       /* Bordes sutiles */
+    --ui-divider: 229, 229, 234;      /* Divisores */
+    --ui-disabled: 199, 199, 204;     /* Deshabilitado */
+    
+    --interactive-primary: 107, 87, 184;  /* Violeta principal */
+    --interactive-hover: 90, 71, 167;     /* Violeta hover */
+  }
+
+  .dark {
+    /* Dark Theme - INSPIRADO EN JW LIBRARY */
+    --bg-primary: 0, 0, 0;            /* Negro puro */
+    --bg-secondary: 28, 28, 30;       /* Gris muy oscuro */
+    --bg-tertiary: 44, 44, 46;        /* Gris oscuro */
+    --bg-header: 10, 10, 10;          /* Negro casi puro */
+    
+    --text-primary: 255, 255, 255;    /* Blanco puro */
+    --text-secondary: 180, 180, 184;  /* Gris claro */
+    --text-tertiary: 122, 122, 126;   /* Gris medio */
+    --text-inverse: 0, 0, 0;          /* Negro */
+    --text-accent: 167, 139, 250;     /* Violeta claro */
+    
+    --ui-border: 58, 58, 60;          /* Bordes sutiles */
+    --ui-divider: 44, 44, 46;         /* Divisores */
+    --ui-disabled: 72, 72, 74;        /* Deshabilitado */
+    
+    --interactive-primary: 139, 92, 246;  /* Violeta principal */
+    --interactive-hover: 167, 139, 250;   /* Violeta hover */
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+      'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+      sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    transition: background-color 250ms ease-in-out, color 250ms ease-in-out;
+  }
+
+  /* Theme transition utility */
+  .theme-transition,
+  .theme-transition * {
+    transition: background-color 250ms ease-in-out, 
+                color 250ms ease-in-out,
+                border-color 250ms ease-in-out,
+                box-shadow 250ms ease-in-out;
+  }
+
+  h1 {
+    @apply text-2xl;
+  }
+
+  h2 {
+    @apply text-xl;
+  }
+
+  h3 {
+    @apply text-lg;
+  }
+
+  /* Smooth scrolling */
+  html {
+    scroll-behavior: smooth;
+  }
+
+  /* Custom scrollbar for dark mode */
+  .dark ::-webkit-scrollbar {
+    width: 8px;
+  }
+
+  .dark ::-webkit-scrollbar-track {
+    background: rgb(var(--bg-secondary));
+  }
+
+  .dark ::-webkit-scrollbar-thumb {
+    background: rgb(var(--ui-border));
+    border-radius: 4px;
+  }
+
+  .dark ::-webkit-scrollbar-thumb:hover {
+    background: rgb(var(--text-tertiary));
+  }
+}
