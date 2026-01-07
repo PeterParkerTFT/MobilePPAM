@@ -2,6 +2,8 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { User } from '../types/models';
 import { UserService, MockUserRepository } from '../services/userService';
+import { SupabaseUserRepository } from '../services/SupabaseUserRepository';
+import { supabase } from '../lib/supabase';
 
 // Define the context shape
 interface UserContextType {
@@ -16,8 +18,8 @@ interface UserContextType {
 const UserContext = createContext<UserContextType | undefined>(undefined);
 
 // Instantiate service once (Singleton pattern for this session)
-// In a real app, this might come from a DI container or custom hook
-const userRepository = new MockUserRepository();
+// If supabase client exists (keys are present), use Supabase repository
+const userRepository = supabase ? new SupabaseUserRepository() : new MockUserRepository();
 const userServiceInstance = new UserService(userRepository);
 
 export function UserProvider({ children }: { children: React.ReactNode }) {
