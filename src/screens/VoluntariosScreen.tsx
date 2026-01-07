@@ -715,14 +715,7 @@ export function VoluntariosScreen({ user, onLogout, onNavigateToInformes, onRole
         </div>
       )}
 
-      {/* Offline indicator */}
-      <div
-        className="fixed bottom-24 left-4 text-white px-3 py-1.5 rounded-full text-xs flex items-center gap-2 shadow-lg"
-        style={{ backgroundColor: 'rgb(51, 51, 51)' }}
-      >
-        <div className="w-2 h-2 bg-gray-400 rounded-full"></div>
-        Offline
-      </div>
+      {/* Offline indicator - Removed for production polish until fully implemented with PWA */}
     </div>
   );
 }

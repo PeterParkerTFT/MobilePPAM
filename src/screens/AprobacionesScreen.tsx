@@ -72,7 +72,7 @@ export function AprobacionesScreen({ user, onLogout, onNavigateToInformes }: Apr
   // Solo admin y ultraadmin pueden ver esta pantalla
   if (user.role !== 'admin' && user.role !== 'ultraadmin') {
     return (
-      <div 
+      <div
         className="min-h-screen pb-24 flex items-center justify-center p-4 theme-transition"
         style={{ backgroundColor: `rgb(${colors.bg.primary})` }}
       >
@@ -88,18 +88,18 @@ export function AprobacionesScreen({ user, onLogout, onNavigateToInformes }: Apr
   }
 
   // Filtrar solicitudes según el tipo de admin
-  const solicitudesFiltradas = user.role === 'ultraadmin' 
+  const solicitudesFiltradas = user.role === 'ultraadmin'
     ? solicitudes // Ultra admin ve todas las solicitudes
     : solicitudes.filter(s => s.congregacion === user.congregacion); // Admin normal solo ve de su congregación
 
   const handleAprobar = (id: string) => {
-    setSolicitudes(prev => prev.map(s => 
+    setSolicitudes(prev => prev.map(s =>
       s.id === id ? { ...s, status: 'aprobado' as const } : s
     ));
   };
 
   const handleRechazar = (id: string) => {
-    setSolicitudes(prev => prev.map(s => 
+    setSolicitudes(prev => prev.map(s =>
       s.id === id ? { ...s, status: 'rechazado' as const } : s
     ));
   };
@@ -116,7 +116,7 @@ export function AprobacionesScreen({ user, onLogout, onNavigateToInformes }: Apr
   };
 
   return (
-    <div 
+    <div
       className="min-h-screen pb-24 theme-transition"
       style={{ backgroundColor: `rgb(${colors.bg.primary})` }}
     >
@@ -133,11 +133,11 @@ export function AprobacionesScreen({ user, onLogout, onNavigateToInformes }: Apr
       <div className="px-4 py-4">
         {/* Badge de tipo de Admin */}
         <div className="mb-4 flex items-center justify-between">
-          <div 
+          <div
             className="px-3 py-1.5 rounded-full text-xs font-medium inline-flex items-center gap-1.5"
-            style={{ 
-              backgroundColor: user.role === 'ultraadmin' 
-                ? 'rgba(220, 38, 38, 0.15)' 
+            style={{
+              backgroundColor: user.role === 'ultraadmin'
+                ? 'rgba(220, 38, 38, 0.15)'
                 : 'rgba(107, 87, 184, 0.15)',
               color: user.role === 'ultraadmin' ? '#dc2626' : `rgb(${colors.interactive.primary})`
             }}
@@ -157,52 +157,52 @@ export function AprobacionesScreen({ user, onLogout, onNavigateToInformes }: Apr
         </div>
 
         {/* Estadísticas */}
-        <div 
+        <div
           className="rounded-xl p-4 mb-6 shadow-md theme-transition"
-          style={{ 
+          style={{
             backgroundColor: `rgb(${colors.bg.secondary})`,
             border: `1px solid rgb(${colors.ui.border})`
           }}
         >
           <div className="grid grid-cols-3 gap-3">
             <div className="text-center">
-              <div 
+              <div
                 className="text-2xl font-bold mb-1"
                 style={{ color: '#f59e0b' }}
               >
                 {solicitudesPendientes.length}
               </div>
-              <div 
+              <div
                 className="text-xs"
                 style={{ color: `rgb(${colors.text.secondary})` }}
               >
                 Pendientes
               </div>
             </div>
-            
+
             <div className="text-center">
-              <div 
+              <div
                 className="text-2xl font-bold mb-1"
                 style={{ color: '#10b981' }}
               >
                 {solicitudesAprobadas.length}
               </div>
-              <div 
+              <div
                 className="text-xs"
                 style={{ color: `rgb(${colors.text.secondary})` }}
               >
                 Aprobados
               </div>
             </div>
-            
+
             <div className="text-center">
-              <div 
+              <div
                 className="text-2xl font-bold mb-1"
                 style={{ color: '#ef4444' }}
               >
                 {solicitudesRechazadas.length}
               </div>
-              <div 
+              <div
                 className="text-xs"
                 style={{ color: `rgb(${colors.text.secondary})` }}
               >
@@ -217,7 +217,7 @@ export function AprobacionesScreen({ user, onLogout, onNavigateToInformes }: Apr
           <div className="mb-6">
             <div className="flex items-center gap-2 mb-3">
               <Clock className="w-5 h-5 text-orange-500" />
-              <h3 
+              <h3
                 className="font-semibold text-lg"
                 style={{ color: `rgb(${colors.text.primary})` }}
               >
@@ -230,33 +230,33 @@ export function AprobacionesScreen({ user, onLogout, onNavigateToInformes }: Apr
                 <div
                   key={solicitud.id}
                   className="rounded-xl p-4 shadow-md theme-transition"
-                  style={{ 
+                  style={{
                     backgroundColor: `rgb(${colors.bg.secondary})`,
                     border: '2px solid rgba(251, 191, 36, 0.3)'
                   }}
                 >
                   {/* Header */}
                   <div className="flex items-start gap-3 mb-3">
-                    <div 
+                    <div
                       className="w-12 h-12 rounded-full flex items-center justify-center text-white text-lg font-semibold flex-shrink-0"
                       style={{ backgroundColor: `rgb(${colors.interactive.primary})` }}
                     >
                       {solicitud.nombre.charAt(0)}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <div 
+                      <div
                         className="font-semibold mb-0.5"
                         style={{ color: `rgb(${colors.text.primary})` }}
                       >
                         {solicitud.nombre}
                       </div>
-                      <div 
+                      <div
                         className="text-xs mb-1"
                         style={{ color: `rgb(${colors.text.secondary})` }}
                       >
                         {solicitud.email}
                       </div>
-                      <div 
+                      <div
                         className="text-xs"
                         style={{ color: `rgb(${colors.text.tertiary})` }}
                       >
@@ -264,7 +264,7 @@ export function AprobacionesScreen({ user, onLogout, onNavigateToInformes }: Apr
                       </div>
                     </div>
                     <div className="text-right">
-                      <span 
+                      <span
                         className="text-xs px-2 py-1 rounded-full bg-orange-100 text-orange-600 font-medium"
                       >
                         {formatFecha(solicitud.fechaSolicitud)}
@@ -273,7 +273,7 @@ export function AprobacionesScreen({ user, onLogout, onNavigateToInformes }: Apr
                   </div>
 
                   {/* Congregación */}
-                  <div 
+                  <div
                     className="text-xs mb-2 flex items-center gap-1.5"
                     style={{ color: `rgb(${colors.text.secondary})` }}
                   >
@@ -285,7 +285,7 @@ export function AprobacionesScreen({ user, onLogout, onNavigateToInformes }: Apr
 
                   {/* Especialidad */}
                   {solicitud.especialidad && (
-                    <div 
+                    <div
                       className="text-xs mb-3 flex items-center gap-1"
                       style={{ color: `rgb(${colors.text.secondary})` }}
                     >
@@ -328,7 +328,7 @@ export function AprobacionesScreen({ user, onLogout, onNavigateToInformes }: Apr
           <div className="mb-6">
             <div className="flex items-center gap-2 mb-3">
               <Check className="w-5 h-5 text-green-500" />
-              <h3 
+              <h3
                 className="font-semibold text-lg"
                 style={{ color: `rgb(${colors.text.primary})` }}
               >
@@ -341,7 +341,7 @@ export function AprobacionesScreen({ user, onLogout, onNavigateToInformes }: Apr
                 <div
                   key={solicitud.id}
                   className="rounded-lg p-3 theme-transition"
-                  style={{ 
+                  style={{
                     backgroundColor: `rgb(${colors.bg.secondary})`,
                     border: '1px solid rgba(16, 185, 129, 0.3)'
                   }}
@@ -349,13 +349,13 @@ export function AprobacionesScreen({ user, onLogout, onNavigateToInformes }: Apr
                   <div className="flex items-center gap-3">
                     <Check className="w-5 h-5 text-green-500 flex-shrink-0" />
                     <div className="flex-1 min-w-0">
-                      <div 
+                      <div
                         className="font-medium text-sm"
                         style={{ color: `rgb(${colors.text.primary})` }}
                       >
                         {solicitud.nombre}
                       </div>
-                      <div 
+                      <div
                         className="text-xs"
                         style={{ color: `rgb(${colors.text.secondary})` }}
                       >
@@ -377,7 +377,7 @@ export function AprobacionesScreen({ user, onLogout, onNavigateToInformes }: Apr
           <div className="mb-6">
             <div className="flex items-center gap-2 mb-3">
               <X className="w-5 h-5 text-red-500" />
-              <h3 
+              <h3
                 className="font-semibold text-lg"
                 style={{ color: `rgb(${colors.text.primary})` }}
               >
@@ -390,7 +390,7 @@ export function AprobacionesScreen({ user, onLogout, onNavigateToInformes }: Apr
                 <div
                   key={solicitud.id}
                   className="rounded-lg p-3 theme-transition"
-                  style={{ 
+                  style={{
                     backgroundColor: `rgb(${colors.bg.secondary})`,
                     border: '1px solid rgba(239, 68, 68, 0.3)'
                   }}
@@ -398,13 +398,13 @@ export function AprobacionesScreen({ user, onLogout, onNavigateToInformes }: Apr
                   <div className="flex items-center gap-3">
                     <X className="w-5 h-5 text-red-500 flex-shrink-0" />
                     <div className="flex-1 min-w-0">
-                      <div 
+                      <div
                         className="font-medium text-sm"
                         style={{ color: `rgb(${colors.text.primary})` }}
                       >
                         {solicitud.nombre}
                       </div>
-                      <div 
+                      <div
                         className="text-xs"
                         style={{ color: `rgb(${colors.text.secondary})` }}
                       >
@@ -424,13 +424,13 @@ export function AprobacionesScreen({ user, onLogout, onNavigateToInformes }: Apr
         {solicitudesPendientes.length === 0 && solicitudesAprobadas.length === 0 && solicitudesRechazadas.length === 0 && (
           <div className="text-center py-12">
             <div className="text-6xl mb-3">✅</div>
-            <h3 
+            <h3
               className="font-semibold mb-2"
               style={{ color: `rgb(${colors.text.primary})` }}
             >
               No hay solicitudes
             </h3>
-            <p 
+            <p
               className="text-sm"
               style={{ color: `rgb(${colors.text.secondary})` }}
             >
@@ -440,14 +440,8 @@ export function AprobacionesScreen({ user, onLogout, onNavigateToInformes }: Apr
         )}
       </div>
 
-      {/* Offline indicator */}
-      <div 
-        className="fixed bottom-24 left-4 text-white px-3 py-1.5 rounded-full text-xs flex items-center gap-2 shadow-lg"
-        style={{ backgroundColor: 'rgb(51, 51, 51)' }}
-      >
-        <div className="w-2 h-2 bg-gray-400 rounded-full"></div>
-        Offline
-      </div>
+      {/* Offline indicator - Removed for production polish until fully implemented with PWA */}
     </div>
   );
 }
+```
