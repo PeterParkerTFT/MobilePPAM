@@ -108,6 +108,7 @@ function AppContent() {
 
   return (
     <div className="min-h-screen bg-gray-900 flex items-center justify-center">
+      <AppTour />
       <div className="w-full max-w-[428px] min-h-screen relative shadow-2xl">
         {activeTab === 'turnos' && (
           <>
@@ -199,7 +200,6 @@ export default function App() {
     <ThemeProvider>
       <Toaster />
       <ReloadPrompt />
-      <AppTour />
       <AppContent />
     </ThemeProvider>
   );
