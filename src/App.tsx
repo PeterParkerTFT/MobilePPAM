@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { ThemeProvider } from './contexts/ThemeContext';
-import { useUser } from './contexts/UserContext';
+import { useUser, UserProvider } from './contexts/UserContext'; // Modified: Added UserProvider import
 import { LoginScreen } from './screens/LoginScreen';
 import { TurnosScreen } from './screens/TurnosScreen';
 import { TurnosScreenCapitan } from './screens/TurnosScreenCapitan';
@@ -159,9 +159,14 @@ function AppContent() {
   );
 }
 
+import { ReloadPrompt } from './ReloadPrompt';
+import { Toaster } from './components/ui/sonner';
+
 export default function App() {
   return (
     <ThemeProvider>
+      <Toaster />
+      <ReloadPrompt />
       <AppContent />
     </ThemeProvider>
   );
