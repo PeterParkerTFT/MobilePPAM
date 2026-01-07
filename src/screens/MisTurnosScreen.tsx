@@ -80,16 +80,16 @@ export function MisTurnosScreen({ user, onLogout, turnos, onNavigateToInformes }
   };
 
   return (
-    <div 
+    <div
       className="min-h-screen pb-24 theme-transition"
       style={{ backgroundColor: `rgb(${colors.bg.primary})` }}
     >
       {/* Header */}
-      <HeaderWithTheme 
+      <HeaderWithTheme
         title="Mis Turnos"
-        user={user} 
-        onLogout={onLogout} 
-        showMenu={showMenu} 
+        user={user}
+        onLogout={onLogout}
+        showMenu={showMenu}
         onMenuToggle={() => setShowMenu(!showMenu)}
         onNavigateToInformes={onNavigateToInformes}
       />
@@ -97,29 +97,29 @@ export function MisTurnosScreen({ user, onLogout, turnos, onNavigateToInformes }
       <div className="px-4 py-6">
         {/* Estadísticas */}
         <div className="grid grid-cols-3 gap-3 mb-6">
-          <div 
+          <div
             className="rounded-xl p-4 text-center shadow-sm theme-transition"
-            style={{ 
+            style={{
               backgroundColor: `rgb(${colors.bg.secondary})`,
               border: `1px solid rgb(${colors.ui.border})`
             }}
           >
-            <div 
+            <div
               className="text-2xl font-bold mb-1"
               style={{ color: `rgb(${colors.interactive.primary})` }}
             >
               {misTurnos.length}
             </div>
-            <div 
+            <div
               className="text-xs font-medium"
               style={{ color: `rgb(${colors.text.tertiary})` }}
             >
               Turnos
             </div>
           </div>
-          <div 
+          <div
             className="rounded-xl p-4 text-center shadow-sm theme-transition"
-            style={{ 
+            style={{
               backgroundColor: `rgb(${colors.bg.secondary})`,
               border: `1px solid rgb(${colors.ui.border})`
             }}
@@ -127,16 +127,16 @@ export function MisTurnosScreen({ user, onLogout, turnos, onNavigateToInformes }
             <div className="text-2xl text-green-500 font-bold mb-1">
               {misTurnos.filter(t => new Date(t.fecha) > new Date()).length}
             </div>
-            <div 
+            <div
               className="text-xs font-medium"
               style={{ color: `rgb(${colors.text.tertiary})` }}
             >
               Próximos
             </div>
           </div>
-          <div 
+          <div
             className="rounded-xl p-4 text-center shadow-sm theme-transition"
-            style={{ 
+            style={{
               backgroundColor: `rgb(${colors.bg.secondary})`,
               border: `1px solid rgb(${colors.ui.border})`
             }}
@@ -144,7 +144,7 @@ export function MisTurnosScreen({ user, onLogout, turnos, onNavigateToInformes }
             <div className="text-2xl text-blue-500 font-bold mb-1">
               {misTurnos.reduce((acc, t) => acc + (t.cupoMaximo > 0 ? 1 : 0), 0)}
             </div>
-            <div 
+            <div
               className="text-xs font-medium"
               style={{ color: `rgb(${colors.text.tertiary})` }}
             >
@@ -154,7 +154,7 @@ export function MisTurnosScreen({ user, onLogout, turnos, onNavigateToInformes }
         </div>
 
         {/* Lista de Mis Turnos */}
-        <h2 
+        <h2
           className="font-medium mb-4"
           style={{ color: `rgb(${colors.text.primary})` }}
         >
@@ -162,18 +162,18 @@ export function MisTurnosScreen({ user, onLogout, turnos, onNavigateToInformes }
         </h2>
 
         {misTurnos.length === 0 ? (
-          <div 
+          <div
             className="rounded-xl p-8 text-center shadow-sm theme-transition"
             style={{ backgroundColor: `rgb(${colors.bg.secondary})` }}
           >
             <div className="text-6xl mb-3">📅</div>
-            <h3 
+            <h3
               className="font-medium mb-2"
               style={{ color: `rgb(${colors.text.primary})` }}
             >
               No tienes turnos asignados
             </h3>
-            <p 
+            <p
               className="text-sm mb-4"
               style={{ color: `rgb(${colors.text.secondary})` }}
             >
@@ -187,7 +187,7 @@ export function MisTurnosScreen({ user, onLogout, turnos, onNavigateToInformes }
                 key={turno.id}
                 onClick={() => setSelectedTurno(turno)}
                 className="rounded-xl p-4 cursor-pointer hover:opacity-90 transition-all theme-transition"
-                style={{ 
+                style={{
                   backgroundColor: `rgb(${colors.bg.secondary})`,
                   boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
                   border: `1px solid rgb(${colors.ui.border})`
@@ -199,7 +199,7 @@ export function MisTurnosScreen({ user, onLogout, turnos, onNavigateToInformes }
                       <EventBadge tipo={turno.tipo} variant="default" showImage />
                       <span className="text-green-500 text-lg">✓</span>
                     </div>
-                    <div 
+                    <div
                       className="text-sm font-semibold"
                       style={{ color: `rgb(${colors.text.primary})` }}
                     >
@@ -207,8 +207,8 @@ export function MisTurnosScreen({ user, onLogout, turnos, onNavigateToInformes }
                     </div>
                   </div>
 
-                  <ChevronRight 
-                    className="w-5 h-5 flex-shrink-0" 
+                  <ChevronRight
+                    className="w-5 h-5 flex-shrink-0"
                     style={{ color: `rgb(${colors.text.tertiary})` }}
                   />
                 </div>
@@ -217,8 +217,8 @@ export function MisTurnosScreen({ user, onLogout, turnos, onNavigateToInformes }
                   <div className="flex items-center gap-2 text-xs" style={{ color: `rgb(${colors.text.secondary})` }}>
                     <Calendar className="w-4 h-4" style={{ color: `rgb(${colors.interactive.primary})` }} />
                     <span>
-                      {new Date(turno.fecha).toLocaleDateString('es-ES', { 
-                        weekday: 'short', 
+                      {new Date(turno.fecha).toLocaleDateString('es-ES', {
+                        weekday: 'short',
                         day: 'numeric',
                         month: 'short',
                         year: 'numeric'
@@ -237,7 +237,7 @@ export function MisTurnosScreen({ user, onLogout, turnos, onNavigateToInformes }
                   </div>
                 </div>
 
-                <div 
+                <div
                   className="rounded-lg p-3 text-white theme-transition"
                   style={{ backgroundColor: `rgb(${colors.interactive.primary})` }}
                 >
@@ -263,9 +263,9 @@ export function MisTurnosScreen({ user, onLogout, turnos, onNavigateToInformes }
 
         {/* Información Adicional */}
         {misTurnos.length > 0 && (
-          <div 
+          <div
             className="mt-6 rounded-xl p-4 flex gap-3 border theme-transition"
-            style={{ 
+            style={{
               backgroundColor: 'rgba(33, 150, 243, 0.1)',
               borderColor: 'rgba(33, 150, 243, 0.3)'
             }}
@@ -274,7 +274,7 @@ export function MisTurnosScreen({ user, onLogout, turnos, onNavigateToInformes }
             <div className="text-sm text-blue-900">
               <p className="font-medium mb-1">Recordatorio</p>
               <p className="text-xs leading-relaxed">
-                Asegúrate de estar en el grupo de WhatsApp de cada turno para recibir instrucciones 
+                Asegúrate de estar en el grupo de WhatsApp de cada turno para recibir instrucciones
                 y comunicaciones importantes del capitán asignado.
               </p>
             </div>
@@ -285,17 +285,17 @@ export function MisTurnosScreen({ user, onLogout, turnos, onNavigateToInformes }
       {/* Modal de Detalle */}
       {selectedTurno && (
         <div className="fixed inset-0 bg-black/50 flex items-end justify-center z-50 animate-in fade-in duration-200">
-          <div 
+          <div
             className="w-full max-w-[428px] rounded-t-3xl max-h-[80vh] overflow-y-auto animate-in slide-in-from-bottom duration-300 theme-transition"
             style={{ backgroundColor: `rgb(${colors.bg.primary})` }}
           >
-            <div 
+            <div
               className="sticky top-0 text-white p-6 rounded-t-3xl theme-transition"
               style={{ backgroundColor: `rgb(${colors.interactive.primary})` }}
             >
               <div className="flex items-start justify-between mb-4">
                 <h2 className="text-xl font-medium pr-8">{selectedTurno.titulo}</h2>
-                <button 
+                <button
                   onClick={() => setSelectedTurno(null)}
                   className="p-2 hover:bg-white/10 rounded-full transition-colors"
                 >
@@ -314,7 +314,7 @@ export function MisTurnosScreen({ user, onLogout, turnos, onNavigateToInformes }
                 </p>
               </div>
 
-              <div 
+              <div
                 className="rounded-xl p-4 space-y-3 theme-transition"
                 style={{ backgroundColor: `rgb(${colors.bg.tertiary})` }}
               >
@@ -366,14 +366,7 @@ export function MisTurnosScreen({ user, onLogout, turnos, onNavigateToInformes }
         </div>
       )}
 
-      {/* Offline indicator */}
-      <div 
-        className="fixed bottom-24 left-4 text-white px-3 py-1.5 rounded-full text-xs flex items-center gap-2 shadow-lg"
-        style={{ backgroundColor: 'rgb(51, 51, 51)' }}
-      >
-        <div className="w-2 h-2 bg-gray-400 rounded-full"></div>
-        Offline
-      </div>
+      {/* Offline indicator - Removed for production polish until fully implemented with PWA */}
     </div>
   );
 }
