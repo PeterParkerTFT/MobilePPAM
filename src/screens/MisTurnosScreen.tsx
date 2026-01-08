@@ -7,6 +7,7 @@ import { EventBadge } from '../components/EventBadge';
 import { useThemeColors } from '../hooks/useThemeColors';
 import { TurnoService } from '../services/TurnoService';
 import { TurnoSesion } from '../types/models';
+import { TurnoDetailModal } from '../components/TurnoDetailModal';
 
 interface MisTurnosScreenProps {
   user: User;
@@ -250,86 +251,12 @@ export function MisTurnosScreen({ user, onLogout, turnos, onNavigateToInformes }
 
       {/* Modal de Detalle */}
       {selectedTurno && (
-        <div className="fixed inset-0 bg-black/50 flex items-end justify-center z-50 animate-in fade-in duration-200">
-          <div
-            className="w-full max-w-[428px] rounded-t-3xl max-h-[80vh] overflow-y-auto animate-in slide-in-from-bottom duration-300 theme-transition"
-            style={{ backgroundColor: `rgb(${colors.bg.primary})` }}
-          >
-            <div
-              className="sticky top-0 text-white p-6 rounded-t-3xl theme-transition"
-              style={{ backgroundColor: `rgb(${colors.interactive.primary})` }}
-            >
-              <div className="flex items-start justify-between mb-4">
-                <h2 className="text-xl font-medium pr-8">{selectedTurno.titulo}</h2>
-                <button
-                  onClick={() => setSelectedTurno(null)}
-                  className="p-2 hover:bg-white/10 rounded-full transition-colors"
-                >
-                  <X className="w-6 h-6" />
-                </button>
-              </div>
-            </div>
-
-            <div className="p-6 space-y-4">
-              <div>
-                <h3 className="font-medium mb-2" style={{ color: `rgb(${colors.text.primary})` }}>
-                  Descripción
-                </h3>
-                <p className="text-sm" style={{ color: `rgb(${colors.text.secondary})` }}>
-                  {selectedTurno.descripcion || 'Sin descripción'}
-                </p>
-              </div>
-
-              <div
-                className="rounded-xl p-4 space-y-3 theme-transition"
-                style={{ backgroundColor: `rgb(${colors.bg.tertiary})` }}
-              >
-                <div className="flex items-center gap-3">
-                  <Calendar className="w-5 h-5" style={{ color: `rgb(${colors.interactive.primary})` }} />
-                  <div>
-                    <div className="text-xs" style={{ color: `rgb(${colors.text.tertiary})` }}>Fecha</div>
-                    <div className="text-sm" style={{ color: `rgb(${colors.text.primary})` }}>
-                      {new Date(selectedTurno.fecha).toLocaleDateString('es-ES', {
-                        weekday: 'long',
-                        day: 'numeric',
-                        month: 'long',
-                        year: 'numeric'
-                      })}
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-3">
-                  <Clock className="w-5 h-5" style={{ color: `rgb(${colors.interactive.primary})` }} />
-                  <div>
-                    <div className="text-xs" style={{ color: `rgb(${colors.text.tertiary})` }}>Horario</div>
-                    <div className="text-sm" style={{ color: `rgb(${colors.text.primary})` }}>
-                      {selectedTurno.horaInicio} - {selectedTurno.horaFin}
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-3">
-                  <MapPin className="w-5 h-5" style={{ color: `rgb(${colors.interactive.primary})` }} />
-                  <div>
-                    <div className="text-xs" style={{ color: `rgb(${colors.text.tertiary})` }}>Ubicación</div>
-                    <div className="text-sm" style={{ color: `rgb(${colors.text.primary})` }}>
-                      {selectedTurno.ubicacion}
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <button
-                onClick={() => handleWhatsAppClick(selectedTurno.grupoWhatsApp || '')}
-                className="w-full bg-green-500 hover:bg-green-600 text-white py-3 rounded-xl flex items-center justify-center gap-2 transition-colors"
-              >
-                <MessageCircle className="w-5 h-5" />
-                Abrir Grupo de WhatsApp
-              </button>
-            </div>
-          </div>
-        </div>
+        <TurnoDetailModal
+          turno={selectedTurno}
+          user={user}
+          onClose={() => setSelectedTurno(null)}
+          onInscribirse={() => { }} // No necesario aquí, ya está inscrito
+        />
       )}
 
       {/* Offline indicator - Removed for production polish until fully implemented with PWA */}

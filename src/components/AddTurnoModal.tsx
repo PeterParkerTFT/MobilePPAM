@@ -1,6 +1,10 @@
 import React, { useState } from 'react';
 import { X } from 'lucide-react';
-import { User } from '../App';
+import { User } from '../types/models';
+import { LocationPicker } from './LocationPicker';
+
+import { TurnoService } from '../services/TurnoService';
+import { MapPin, Navigation } from 'lucide-react';
 
 type EventType = 'predicacion' | 'construccion' | 'congreso' | 'mantenimiento' | 'limpieza' | 'hospitalidad';
 
@@ -16,8 +20,10 @@ interface Turno {
   maxVoluntarios: number;
   coordinador?: string;
   ubicacion: string;
+  coordenadas?: { lat: number; lng: number };
   requisitos?: string;
   inscritos?: string[];
+  sitioId?: string; // Nuevo: ID de sitio seleccionado
 }
 
 interface AddTurnoModalProps {
@@ -45,12 +51,39 @@ export function AddTurnoModal({ onClose, onAdd, user }: AddTurnoModalProps) {
     horaFin: '',
     maxVoluntarios: 10,
     ubicacion: '',
-    requisitos: ''
+    coordenadas: undefined as { lat: number; lng: number } | undefined,
+    requisitos: '',
+    sitioId: '' // Nuevo
   });
+
+  const [availableSitios, setAvailableSitios] = useState<any[]>([]);
+  const [useSavedLocation, setUseSavedLocation] = useState(false);
+  const turnoService = new TurnoService();
+
+  React.useEffect(() => {
+    if (user.congregacion) {
+      turnoService.getSitios(user.congregacion).then(setAvailableSitios);
+    }
+  }, [user.congregacion]);
+
+  const handleSitioSelect = (sitioId: string) => {
+    const sitio = availableSitios.find(s => s.id === sitioId);
+    if (sitio) {
+      setFormData({
+        ...formData,
+        sitioId: sitio.id,
+        ubicacion: sitio.nombre,
+        coordenadas: sitio.coordenadas, // Supabase jsonb auto-parsed
+        tipo: sitio.tipo || formData.tipo
+      });
+    } else {
+      setFormData({ ...formData, sitioId: '' });
+    }
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     const newTurno: Turno = {
       id: Math.random().toString(36).substr(2, 9),
       ...formData,
@@ -69,7 +102,7 @@ export function AddTurnoModal({ onClose, onAdd, user }: AddTurnoModalProps) {
         <div className="sticky top-0 bg-gradient-to-br from-[#4A5D7C] to-[#5B7FA6] text-white p-6 rounded-t-3xl">
           <div className="flex items-center justify-between">
             <h2 className="text-xl font-medium">Nueva Actividad</h2>
-            <button 
+            <button
               onClick={onClose}
               className="p-2 hover:bg-white/10 rounded-full transition-colors"
             >
@@ -89,11 +122,10 @@ export function AddTurnoModal({ onClose, onAdd, user }: AddTurnoModalProps) {
                   key={event.type}
                   type="button"
                   onClick={() => setFormData({ ...formData, tipo: event.type })}
-                  className={`p-3 rounded-xl border-2 transition-all ${
-                    formData.tipo === event.type
-                      ? 'border-[#4A5D7C] bg-blue-50'
-                      : 'border-gray-200 hover:border-gray-300'
-                  }`}
+                  className={`p-3 rounded-xl border-2 transition-all ${formData.tipo === event.type
+                    ? 'border-[#4A5D7C] bg-blue-50'
+                    : 'border-gray-200 hover:border-gray-300'
+                    }`}
                 >
                   <div className="text-2xl mb-1">{event.icon}</div>
                   <div className="text-sm text-gray-700">{event.label}</div>
@@ -164,16 +196,75 @@ export function AddTurnoModal({ onClose, onAdd, user }: AddTurnoModalProps) {
           </div>
 
           {/* Ubicación */}
-          <div>
-            <label className="block text-gray-700 font-medium mb-2">Ubicación</label>
-            <input
-              type="text"
-              required
-              value={formData.ubicacion}
-              onChange={(e) => setFormData({ ...formData, ubicacion: e.target.value })}
-              className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#4A5D7C] focus:border-transparent outline-none"
-              placeholder="Ej: Salón del Reino Central"
-            />
+          {/* Ubicación (Selector de Modo) */}
+          <div className="bg-gray-50 p-4 rounded-xl border border-gray-200">
+            <div className="flex gap-2 mb-4">
+              <button
+                type="button"
+                onClick={() => setUseSavedLocation(true)}
+                className={`flex-1 py-2 text-sm font-medium rounded-lg transition-colors ${useSavedLocation
+                    ? 'bg-[#4A5D7C] text-white'
+                    : 'bg-white text-gray-600 border hover:bg-gray-50'
+                  }`}
+              >
+                <Navigation className="w-4 h-4 inline-block mr-1.5 -mt-0.5" />
+                Sitio Guardado
+              </button>
+              <button
+                type="button"
+                onClick={() => setUseSavedLocation(false)}
+                className={`flex-1 py-2 text-sm font-medium rounded-lg transition-colors ${!useSavedLocation
+                    ? 'bg-[#4A5D7C] text-white'
+                    : 'bg-white text-gray-600 border hover:bg-gray-50'
+                  }`}
+              >
+                <MapPin className="w-4 h-4 inline-block mr-1.5 -mt-0.5" />
+                Nuevo Sitio
+              </button>
+            </div>
+
+            {useSavedLocation ? (
+              <div>
+                <label className="block text-gray-700 font-medium mb-2">Seleccionar Sitio</label>
+                <select
+                  value={formData.sitioId}
+                  onChange={(e) => handleSitioSelect(e.target.value)}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#4A5D7C] focus:border-transparent outline-none bg-white"
+                >
+                  <option value="">-- Elija una ubicación --</option>
+                  {availableSitios.map(s => (
+                    <option key={s.id} value={s.id}>{s.nombre}</option>
+                  ))}
+                </select>
+                {formData.sitioId && (
+                  <p className="text-sm text-green-600 mt-2 flex items-center gap-1">
+                    ✓ Ubicación y coordenadas cargadas
+                  </p>
+                )}
+              </div>
+            ) : (
+              <>
+                <div className="mb-4">
+                  <label className="block text-gray-700 font-medium mb-2">Nombre del Lugar</label>
+                  <input
+                    type="text"
+                    required={!useSavedLocation}
+                    value={formData.ubicacion}
+                    onChange={(e) => setFormData({ ...formData, ubicacion: e.target.value, sitioId: '' })}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#4A5D7C] focus:border-transparent outline-none"
+                    placeholder="Ej: Plaza Principal"
+                  />
+                </div>
+                <div>
+                  <label className="block text-gray-700 font-medium mb-2">Punto en el Mapa</label>
+                  <LocationPicker
+                    onLocationSelect={(loc) => setFormData({ ...formData, coordenadas: loc, sitioId: '' })}
+                    height="200px"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">Arrastra el marcador para fijar la ubicación exacta</p>
+                </div>
+              </>
+            )}
           </div>
 
           {/* Max Voluntarios */}
@@ -203,14 +294,14 @@ export function AddTurnoModal({ onClose, onAdd, user }: AddTurnoModalProps) {
 
           {/* Buttons */}
           <div className="flex gap-3 pt-4">
-            <button 
+            <button
               type="button"
               onClick={onClose}
               className="flex-1 bg-gray-200 text-gray-700 py-3 rounded-xl font-medium hover:bg-gray-300 transition-colors"
             >
               Cancelar
             </button>
-            <button 
+            <button
               type="submit"
               className="flex-1 bg-gradient-to-r from-[#4A5D7C] to-[#5B7FA6] text-white py-3 rounded-xl font-medium hover:shadow-lg transition-all"
             >

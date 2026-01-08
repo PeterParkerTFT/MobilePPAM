@@ -4,6 +4,8 @@ import { User, Turno, Capitan } from '../types/models';
 import { ChevronRight, MoreVertical, Plus } from 'lucide-react';
 import { HeaderWithTheme } from '../components/HeaderWithTheme';
 import { TurnoDetailModal } from '../components/TurnoDetailModal';
+import { AddTurnoModal } from '../components/AddTurnoModal';
+import { TurnoService } from '../services/TurnoService';
 import { EventBadge } from '../components/EventBadge';
 import { eventTypes } from '../constants/eventTypes';
 import { useThemeColors } from '../hooks/useThemeColors';
@@ -14,15 +16,18 @@ interface TurnosScreenProps {
   turnos: Turno[];
   capitanes: Capitan[];
   onInscripcion: (turnoId: string, userId: string) => void;
-  onNavigateToInformes?: () => void; // Nueva prop
+  onNavigateToInformes?: () => void;
+  onTurnoCreated?: () => void;
 }
 
-export function TurnosScreen({ user, onLogout, turnos, capitanes, onInscripcion, onNavigateToInformes }: TurnosScreenProps) {
+export function TurnosScreen({ user, onLogout, turnos, capitanes, onInscripcion, onNavigateToInformes, onTurnoCreated }: TurnosScreenProps) {
   const [selectedEvent, setSelectedEvent] = useState<string>('carrito');
   const [showPastTurnos, setShowPastTurnos] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
   const [selectedTurno, setSelectedTurno] = useState<Turno | null>(null);
+  const [showAddModal, setShowAddModal] = useState(false);
   const colors = useThemeColors();
+  const turnoService = new TurnoService();
 
   const filteredTurnos = turnos.filter(turno => turno.tipo === selectedEvent);
 
@@ -77,8 +82,13 @@ export function TurnosScreen({ user, onLogout, turnos, capitanes, onInscripcion,
         {canAddTurno && (
           <div className="flex justify-end mb-4">
             <button
+              onClick={() => setShowAddModal(true)}
               className="text-white px-5 py-2.5 rounded-lg flex items-center gap-2 hover:opacity-90 transition-all shadow-lg"
-              style={{ backgroundColor: `rgb(${colors.interactive.primary})` }}
+              style={{
+                backgroundColor: selectedEvent
+                  ? `rgb(${eventTypes.find(e => e.id === selectedEvent)?.color || colors.interactive.primary})`
+                  : `rgb(${colors.interactive.primary})`
+              }}
             >
               <Plus className="w-5 h-5" />
               <span className="text-sm font-medium">Agregar</span>
@@ -264,6 +274,30 @@ export function TurnosScreen({ user, onLogout, turnos, capitanes, onInscripcion,
           onInscribirse={() => {
             onInscripcion(selectedTurno.id, user.id);
             setSelectedTurno(null);
+          }}
+        />
+      )}
+
+      {/* Modal de Agregar Turno */}
+      {showAddModal && (
+        <AddTurnoModal
+          user={user}
+          onClose={() => setShowAddModal(false)}
+          onAdd={async (newTurnoData) => {
+            try {
+              // Convertir formato de AddTurnoModal a lo que espera TurnoService
+              // El modal ya devuelve un objeto "Turno" pero necesitamos adaptarlo si es necesario
+              // O simplemente llamar a TurnoService.create
+
+              // @ts-ignore - AddTurnoModal type vs Turno model match check needed
+              await turnoService.createTurno(newTurnoData, user.congregacion);
+              setShowAddModal(false);
+              onTurnoCreated?.();
+              alert('Turno creado con éxito.');
+            } catch (error) {
+              console.error('Error creando turno:', error);
+              alert('Error al crear el turno');
+            }
           }}
         />
       )}

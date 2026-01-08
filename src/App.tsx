@@ -120,6 +120,7 @@ function AppContent() {
                 capitanes={capitanes}
                 onInscripcion={handleInscripcion}
                 onNavigateToInformes={() => setActiveTab('informes')}
+                onTurnoCreated={loadTurnos}
               />
             )}
             {currentUser.role === UserRole.Capitan && (

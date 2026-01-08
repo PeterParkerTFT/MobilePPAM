@@ -16,7 +16,7 @@ export class TurnoService {
             .from('turnos')
             .select(`
         *,
-        sitios!inner (id, nombre, congregacion_id),
+        sitios!inner (id, nombre, congregacion_id, coordenadas),
         users (id, nombre)
       `);
 
@@ -55,6 +55,7 @@ export class TurnoService {
             horaFin: t.horario_fin.substring(0, 5),
             grupoWhatsApp: '',
             ubicacion: t.sitios.nombre,
+            coordenadas: t.sitios.coordenadas,
             voluntariosInscritos: [],
             cupoMaximo: t.voluntarios_max
         } as unknown as TurnoSesion));
@@ -242,5 +243,71 @@ export class TurnoService {
             cupoMaximo: item.turnos.voluntarios_max,
             grupoWhatsApp: '' // TODO: Add if available
         } as TurnoSesion));
+    }
+
+    async getSitios(congregacionId: string): Promise<any[]> {
+        if (!supabase) throw new Error('Supabase no configurado');
+
+        const { data, error } = await supabase
+            .from('sitios')
+            .select('*')
+            .eq('congregacion_id', congregacionId)
+            .order('nombre');
+
+        if (error) {
+            console.error('Error fetching sitios:', error);
+            return [];
+        }
+        return data;
+    }
+
+    /**
+     * Crea un nuevo turno.
+     * Estrategia: Crea un Sitio "Ad-Hoc" implícito para este turno para mantener integridad referencial sin cambiar esquema.
+     */
+    async createTurno(turno: any, congregacionId: string): Promise<boolean> {
+        if (!supabase) throw new Error('Supabase no configurado');
+
+        let sitioId = turno.sitioId;
+
+        // 1. Crear el Sitio Implícito SI NO se seleccionó uno existente
+        if (!sitioId) {
+            const { data: sitioData, error: sitioError } = await supabase
+                .from('sitios')
+                .insert({
+                    nombre: turno.ubicacion || 'Ubicación Personalizada',
+                    direccion: turno.ubicacion,
+                    tipo: turno.tipo,
+                    congregacion_id: congregacionId,
+                    coordenadas: turno.coordenadas ? { lat: turno.coordenadas.lat, lng: turno.coordenadas.lng } : null
+                })
+                .select()
+                .single();
+
+            if (sitioError) {
+                console.error('Error creating linked site:', sitioError);
+                throw sitioError;
+            }
+            sitioId = sitioData.id;
+        }
+
+        // 2. Crear el Turno
+        const { error: turnoError } = await supabase
+            .from('turnos')
+            .insert({
+                sitio_id: sitioId,
+                dia: new Date(turno.fecha).toLocaleDateString('es-ES', { weekday: 'long' }), // "Lunes", "Martes"...
+                horario_inicio: turno.horaInicio,
+                horario_fin: turno.horaFin,
+                voluntarios_max: turno.maxVoluntarios,
+                capitan_id: null // O el usuario que lo crea si es capitán
+            });
+
+        if (turnoError) {
+            console.error('Error creating turno:', turnoError);
+            throw turnoError;
+        }
+
+        return true;
     }
 }

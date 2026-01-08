@@ -148,6 +148,7 @@ export interface TurnoSesion extends TurnoBase {
   horaFin?: string;
   tipo?: 'caminata' | 'fijo';
   ubicacion?: string;
+  coordenadas?: { lat: number; lng: number };
   grupoWhatsApp?: string;
 }
 
