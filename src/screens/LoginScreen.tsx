@@ -74,7 +74,13 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
       };
 
       const newUser = await userService.registerUser(userData, signupForm.password);
-      onLogin(newUser);
+
+      // UX Improvement: Don't auto-login if email confirmation is required.
+      // Instead, show success message and switch to login view.
+      alert('¡Cuenta creada con éxito! Hemos enviado un enlace de confirmación a tu correo electrónico. Por favor verifícalo antes de iniciar sesión.');
+      resetToSplit();
+      setViewState('login');
+
     } catch (error) {
       console.error('Registration error:', error);
       alert('Error al registrar usuario: ' + (error instanceof Error ? error.message : 'Unknown error'));
