@@ -5,7 +5,7 @@
  */
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Church, Search, Check, ChevronDown, X } from 'lucide-react';
+import { Building2, Search, Check, ChevronDown, X } from 'lucide-react';
 import { Congregacion } from '../types/models';
 
 interface CongregationComboboxProps {
@@ -172,7 +172,7 @@ export function CongregationCombobox({
     <div ref={containerRef} className={`relative ${className}`}>
       {/* Label */}
       <label className="block text-sm font-light mb-2 text-[#333333] flex items-center gap-2">
-        <Church className="w-4 h-4 text-[#594396]" strokeWidth={1.5} />
+        <Building2 className="w-4 h-4 text-[#594396]" strokeWidth={1.5} />
         Congregación {required && <span className="text-red-500">*</span>}
       </label>
 
@@ -200,7 +200,7 @@ export function CongregationCombobox({
           {isOpen ? (
             <Search className="w-5 h-5 text-[#999999]" strokeWidth={1.5} />
           ) : (
-            <Church className="w-5 h-5 text-[#594396]" strokeWidth={1.5} />
+            <Building2 className="w-5 h-5 text-[#594396]" strokeWidth={1.5} />
           )}
 
           {/* Input / Display */}
@@ -283,7 +283,7 @@ export function CongregationCombobox({
                     `}
                   >
                     <div className="flex items-center gap-3 flex-1 min-w-0">
-                      <Church
+                      <Building2
                         className="w-4 h-4 flex-shrink-0"
                         style={{ color: isSelected ? '#594396' : '#999999' }}
                         strokeWidth={1.5}
@@ -314,7 +314,7 @@ export function CongregationCombobox({
             </ul>
           ) : (
             <div className="px-4 py-8 text-center text-[#999999]">
-              <Church className="w-8 h-8 mx-auto mb-2 opacity-30" strokeWidth={1.5} />
+              <Building2 className="w-8 h-8 mx-auto mb-2 opacity-30" strokeWidth={1.5} />
               <p className="text-sm">No se encontraron congregaciones</p>
               <p className="text-xs mt-1">Intenta con otra búsqueda</p>
             </div>

@@ -5,6 +5,8 @@ import { Calendar, MapPin, Clock, Users, MessageCircle, Phone, X, ChevronRight, 
 import { HeaderWithTheme } from '../components/HeaderWithTheme';
 import { EventBadge } from '../components/EventBadge';
 import { useThemeColors } from '../hooks/useThemeColors';
+import { TurnoService } from '../services/TurnoService';
+import { TurnoSesion } from '../types/models';
 
 interface MisTurnosScreenProps {
   user: User;
@@ -19,71 +21,25 @@ export function MisTurnosScreen({ user, onLogout, turnos, onNavigateToInformes }
   const colors = useThemeColors();
 
   // Filtrar solo los turnos donde el usuario está inscrito
-  const misTurnos = [
-    {
-      id: '1',
-      titulo: 'Expositor - Centro',
-      fecha: '2026-01-10',
-      horaInicio: '09:00',
-      horaFin: '12:00',
-      tipo: EventType.Expositores,
-      ubicacion: 'Plaza Principal',
-      cupoActual: 8,
-      cupoMaximo: 10,
-      capitanId: 'cap1',
-      voluntariosInscritos: ['user1'],
-      estado: 'disponible' as const,
-      capitan: {
-        nombre: 'Hno. Carlos Méndez',
-        telefono: '+52 555 123 4567'
-      },
-      capitanNombre: 'Hno. Carlos Méndez',
-      descripcion: 'Turno de expositor en stand de testificación pública en la plaza principal.',
-      grupoWhatsApp: 'https://chat.whatsapp.com/ejemplo1'
-    },
-    {
-      id: '2',
-      titulo: 'Guía - Norte',
-      fecha: '2026-01-12',
-      horaInicio: '10:00',
-      horaFin: '12:30',
-      tipo: EventType.Guias,
-      ubicacion: 'Colonia Norte',
-      cupoActual: 12,
-      cupoMaximo: 15,
-      capitanId: 'cap2',
-      voluntariosInscritos: ['user1'],
-      estado: 'disponible' as const,
-      capitan: {
-        nombre: 'Hno. Juan Torres',
-        telefono: '+52 555 234 5678'
-      },
-      capitanNombre: 'Hno. Juan Torres',
-      descripcion: 'Guía para grupo de predicación en la zona norte de la ciudad.',
-      grupoWhatsApp: 'https://chat.whatsapp.com/ejemplo2'
-    },
-    {
-      id: '3',
-      titulo: 'Escuela Teocratica',
-      fecha: '2026-01-15',
-      horaInicio: '16:00',
-      horaFin: '18:00',
-      tipo: EventType.Escuelas,
-      ubicacion: 'Salón del Reino',
-      cupoActual: 5,
-      cupoMaximo: 8,
-      capitanId: 'cap3',
-      voluntariosInscritos: ['user1'],
-      estado: 'disponible' as const,
-      capitan: {
-        nombre: 'Hna. María López',
-        telefono: '+52 555 345 6789'
-      },
-      capitanNombre: 'Hna. María López',
-      descripcion: 'Asistencia a la Escuela del Ministerio Teocrático.',
-      grupoWhatsApp: 'https://chat.whatsapp.com/ejemplo3'
-    }
-  ];
+  const [misTurnos, setMisTurnos] = useState<TurnoSesion[]>([]);
+  const [loading, setLoading] = useState(true);
+  const turnoService = new TurnoService();
+
+  React.useEffect(() => {
+    const fetchMisTurnos = async () => {
+      setLoading(true);
+      try {
+        const data = await turnoService.getMisTurnos(user.id);
+        setMisTurnos(data);
+      } catch (error) {
+        console.error('Error fetching mis turnos:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchMisTurnos();
+  }, [user.id]);
 
   const handleWhatsAppClick = (grupoUrl: string) => {
     window.open(grupoUrl, '_blank');
@@ -152,7 +108,7 @@ export function MisTurnosScreen({ user, onLogout, turnos, onNavigateToInformes }
             }}
           >
             <div className="text-2xl text-blue-500 font-bold mb-1">
-              {misTurnos.reduce((acc, t) => acc + (t.cupoMaximo > 0 ? 1 : 0), 0)}
+              {misTurnos.reduce((acc, t) => acc + ((t.cupoMaximo || 0) > 0 ? 1 : 0), 0)}
             </div>
             <div
               className="text-xs font-medium"
@@ -206,14 +162,14 @@ export function MisTurnosScreen({ user, onLogout, turnos, onNavigateToInformes }
                 <div className="flex items-center gap-3 mb-3">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-2">
-                      <EventBadge tipo={turno.tipo} variant="default" showImage />
+                      <EventBadge tipo={turno.tipo || 'Evento'} variant="default" showImage />
                       <span className="text-green-500 text-lg">✓</span>
                     </div>
                     <div
                       className="text-sm font-semibold"
                       style={{ color: `rgb(${colors.text.primary})` }}
                     >
-                      {turno.titulo}
+                      {turno.titulo || 'Sin título'}
                     </div>
                   </div>
 
@@ -258,7 +214,7 @@ export function MisTurnosScreen({ user, onLogout, turnos, onNavigateToInformes }
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
-                      handleWhatsAppClick(turno.grupoWhatsApp);
+                      handleWhatsAppClick(turno.grupoWhatsApp || '');
                     }}
                     className="w-full bg-green-500 hover:bg-green-600 text-white py-2 rounded-lg flex items-center justify-center gap-2 transition-colors text-sm"
                   >
@@ -320,7 +276,7 @@ export function MisTurnosScreen({ user, onLogout, turnos, onNavigateToInformes }
                   Descripción
                 </h3>
                 <p className="text-sm" style={{ color: `rgb(${colors.text.secondary})` }}>
-                  {selectedTurno.descripcion}
+                  {selectedTurno.descripcion || 'Sin descripción'}
                 </p>
               </div>
 
@@ -365,7 +321,7 @@ export function MisTurnosScreen({ user, onLogout, turnos, onNavigateToInformes }
               </div>
 
               <button
-                onClick={() => handleWhatsAppClick(selectedTurno.grupoWhatsApp)}
+                onClick={() => handleWhatsAppClick(selectedTurno.grupoWhatsApp || '')}
                 className="w-full bg-green-500 hover:bg-green-600 text-white py-3 rounded-xl flex items-center justify-center gap-2 transition-colors"
               >
                 <MessageCircle className="w-5 h-5" />

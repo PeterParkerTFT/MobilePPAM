@@ -15,8 +15,9 @@ export interface IUserRepository {
   findAll(): Promise<User[]>;
   findById(id: string): Promise<User | null>;
   update(id: string, data: Partial<User>): Promise<User>;
-  create(data: Omit<User, 'id'>): Promise<User>;
+  create(data: Omit<User, 'id'>, password?: string): Promise<User>;
   findByEmail(email: string): Promise<User | null>;
+  authenticate?(email: string, password: string): Promise<User | null>;
 }
 
 /**
@@ -27,18 +28,32 @@ export class UserService {
 
   /**
    * Autentica un usuario por email y contraseña
-   * @description En esta versión mock, solo valida que el usuario exista
    */
   async login(email: string, password: string): Promise<User | null> {
-    const user = await this.repository.findByEmail(email);
-
-    if (!user) {
-      return null;
+    if (this.repository.authenticate) {
+      return this.repository.authenticate(email, password);
     }
 
-    // TODO: Validar contraseña real cuando haya backend
-    // Por ahora aceptamos cualquier contraseña si el usuario existe
+    // Fallback for MockRepository if not implemented
+    const user = await this.repository.findByEmail(email);
+    if (!user) return null;
     return user;
+  }
+
+  /**
+   * Actualiza el perfil de un usuario
+   * @param id ID del usuario
+   * @param data Datos a actualizar
+   */
+  async update(id: string, data: Partial<User>): Promise<User> {
+    return this.repository.update(id, data);
+  }
+
+  /**
+   * Registra un nuevo usuario en el sistema
+   */
+  async registerUser(userData: Omit<User, 'id'>, password?: string): Promise<User> {
+    return this.repository.create(userData, password);
   }
 
   /**
@@ -315,7 +330,7 @@ export class MockUserRepository implements IUserRepository {
     return this.users[index];
   }
 
-  async create(data: Omit<User, 'id'>): Promise<User> {
+  async create(data: Omit<User, 'id'>, password?: string): Promise<User> {
     const newUser: User = {
       ...data,
       id: Math.random().toString(36).substr(2, 9),
@@ -326,6 +341,11 @@ export class MockUserRepository implements IUserRepository {
 
   async findByEmail(email: string): Promise<User | null> {
     return this.users.find(u => u.email.toLowerCase() === email.toLowerCase()) || null;
+  }
+
+  async authenticate(email: string, password: string): Promise<User | null> {
+    // Mock auth: accepts any password if user exists
+    return this.findByEmail(email);
   }
 
   // Helper para tests

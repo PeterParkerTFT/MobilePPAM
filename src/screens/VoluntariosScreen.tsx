@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { User, Turno } from '../types/models';
-import { UserRole, EnumHelpers } from '../types/enums';
+import { UserRole, UserStatus, EnumHelpers } from '../types/enums';
 import { MoreVertical, Plus, X, Users, CheckCircle, XCircle, AlertTriangle, ChevronDown, ChevronUp } from 'lucide-react';
 import { HeaderWithTheme } from '../components/HeaderWithTheme';
 import { useThemeColors } from '../hooks/useThemeColors';
-// import profilePlaceholder from 'figma:asset/116aa22720bf73cd0d1bc584769d9b781bd5c276.png';
+import { TurnoService } from '../services/TurnoService';
 import { useUser } from '../contexts/UserContext';
 import { congregaciones } from '../data/congregaciones';
 
@@ -49,27 +49,42 @@ export function VoluntariosScreen({ user, onLogout, onNavigateToInformes, onRole
   const [showMenu, setShowMenu] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
   const [email, setEmail] = useState('');
-  const [confirmEmail, setConfirmEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [nombre, setNombre] = useState('');
   const [filterType, setFilterType] = useState<FilterType>('all');
   const [expandedCapitanes, setExpandedCapitanes] = useState<Set<string>>(new Set());
   const [voluntariosDisponibles, setVoluntariosDisponibles] = useState<Voluntario[]>([]);
   const [loading, setLoading] = useState(true);
   const colors = useThemeColors();
 
+  // Instance service
+  const turnoService = new TurnoService();
+
   // Fetch users from UserService
   useEffect(() => {
     const fetchUsers = async () => {
       setLoading(true);
       try {
-        const users = await userService.searchUsers({}, user);
+        const [users, asignaciones] = await Promise.all([
+          userService.searchUsers({}, user),
+          turnoService.getAllAsignaciones()
+        ]);
+
+        const hoy = new Date().toISOString().split('T')[0];
 
         // Transformar User -> Voluntario
         const mappedVoluntarios: Voluntario[] = users.map(u => {
           // Encontrar congregación
           const cong = congregaciones.find(c => c.id === u.congregacion);
 
-          // Calcular turnos asignados
-          const countTurnos = turnos.filter(t => t.voluntariosInscritos.includes(u.id)).length;
+          const misAsignaciones = asignaciones.filter((a: any) => a.user_id === u.id);
+
+          // Turnos futuros (o activos)
+          const countTurnos = misAsignaciones.filter((a: any) => a.fecha >= hoy).length;
+
+          // Informe Enviado (checamos si tiene pendientes pasados)
+          const asignacionesPasadas = misAsignaciones.filter((a: any) => a.fecha < hoy);
+          const tienePendientes = asignacionesPasadas.some((a: any) => !a.fecha_reporte);
 
           return {
             id: u.id,
@@ -78,10 +93,10 @@ export function VoluntariosScreen({ user, onLogout, onNavigateToInformes, onRole
             telefono: u.telefono,
             ubicacion: cong ? cong.nombre : 'Sin asignación',
             role: u.role,
-            roleNumero: 0, // Mock logic
+            roleNumero: 0,
             turnosAsignados: countTurnos,
-            informeEnviado: Math.random() > 0.5, // Mock status
-            capitanId: 'cap1', // Mock assignment
+            informeEnviado: !tienePendientes,
+            capitanId: u.capitanId,
             foto: undefined
           };
         });
@@ -168,13 +183,30 @@ export function VoluntariosScreen({ user, onLogout, onNavigateToInformes, onRole
     return EnumHelpers.getRoleLabel(role);
   };
 
-  const handleAddVoluntario = (e: React.FormEvent) => {
+  const handleAddVoluntario = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (email === confirmEmail && email.includes('@')) {
-      // Aquí iría la lógica para agregar el voluntario
+    if (!email || !password || !nombre) return;
+
+    try {
+      await userService.registerUser({
+        email,
+        nombre,
+        telefono: '',
+        role: UserRole.Voluntario,
+        status: UserStatus.Aprobado,
+        congregacion: user.congregacion
+      }, password);
+
+      alert('Voluntario agregado exitosamente');
       setShowAddModal(false);
       setEmail('');
-      setConfirmEmail('');
+      setPassword('');
+      setNombre('');
+      // Trigger reload? The generic hook might handle it or we need a refresh
+      // For now close modal.
+    } catch (error) {
+      console.error('Error registering user:', error);
+      alert('Error al registrar voluntario');
     }
   };
 
@@ -612,102 +644,67 @@ export function VoluntariosScreen({ user, onLogout, onNavigateToInformes, onRole
             </div>
 
             <form onSubmit={handleAddVoluntario} className="p-4">
-              {/* Advertencia */}
-              <div
-                className="rounded-lg p-4 mb-6 theme-transition"
-                style={{ backgroundColor: `rgb(${colors.bg.tertiary})` }}
-              >
-                <p
-                  className="text-sm leading-relaxed"
-                  style={{ color: `rgb(${colors.text.primary})` }}
-                >
-                  Si el correo esta mal, el usuario no podrá acceder en la app. Tómate el tiempo para escribirlo bien y confirmarlo con el voluntario
-                </p>
-              </div>
-
-              {/* Correo Electrónico */}
               <div className="mb-4">
-                <label
-                  className="block font-medium mb-2 text-sm"
-                  style={{ color: `rgb(${colors.text.primary})` }}
-                >
+                <label className="block font-medium mb-2 text-sm" style={{ color: `rgb(${colors.text.primary})` }}>
+                  Nombre Completo
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={nombre}
+                  onChange={(e) => setNombre(e.target.value)}
+                  className="w-full px-4 py-3 border-b outline-none theme-transition"
+                  style={{ borderColor: `rgb(${colors.ui.border})`, color: `rgb(${colors.text.primary})`, backgroundColor: 'transparent' }}
+                  placeholder="Ej. Juan Pérez"
+                />
+              </div>
+
+              <div className="mb-4">
+                <label className="block font-medium mb-2 text-sm" style={{ color: `rgb(${colors.text.primary})` }}>
                   Correo Electrónico
-                  <span
-                    className="text-xs ml-2"
-                    style={{ color: `rgb(${colors.text.tertiary})` }}
-                  >
-                    Requerido
-                  </span>
                 </label>
-                <div className="relative">
-                  <input
-                    type="email"
-                    required
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className="w-full px-4 py-3 border-b outline-none theme-transition"
-                    style={{
-                      borderColor: `rgb(${colors.ui.border})`,
-                      color: `rgb(${colors.text.primary})`,
-                      backgroundColor: 'transparent'
-                    }}
-                    placeholder="correo@ejemplo.com"
-                  />
-                </div>
+                <input
+                  type="email"
+                  required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="w-full px-4 py-3 border-b outline-none theme-transition"
+                  style={{ borderColor: `rgb(${colors.ui.border})`, color: `rgb(${colors.text.primary})`, backgroundColor: 'transparent' }}
+                  placeholder="correo@ejemplo.com"
+                />
               </div>
 
-              {/* Repite el Correo */}
               <div className="mb-6">
-                <label
-                  className="block font-medium mb-2 text-sm"
-                  style={{ color: `rgb(${colors.text.primary})` }}
-                >
-                  Repite el Correo
-                  <span
-                    className="text-xs ml-2"
-                    style={{ color: `rgb(${colors.text.tertiary})` }}
-                  >
-                    Requerido
-                  </span>
+                <label className="block font-medium mb-2 text-sm" style={{ color: `rgb(${colors.text.primary})` }}>
+                  Contraseña Temporal
                 </label>
-                <div className="relative">
-                  <input
-                    type="email"
-                    required
-                    value={confirmEmail}
-                    onChange={(e) => setConfirmEmail(e.target.value)}
-                    className="w-full px-4 py-3 border-b outline-none theme-transition"
-                    style={{
-                      borderColor: `rgb(${colors.ui.border})`,
-                      color: `rgb(${colors.text.primary})`,
-                      backgroundColor: 'transparent'
-                    }}
-                    placeholder="correo@ejemplo.com"
-                  />
-                </div>
+                <input
+                  type="text"
+                  required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="w-full px-4 py-3 border-b outline-none theme-transition"
+                  style={{ borderColor: `rgb(${colors.ui.border})`, color: `rgb(${colors.text.primary})`, backgroundColor: 'transparent' }}
+                  placeholder="Ej. 123456"
+                />
               </div>
 
-              {/* Buttons */}
               <div className="flex gap-3">
                 <button
                   type="button"
                   onClick={() => setShowAddModal(false)}
                   className="flex-1 border py-3 rounded-lg font-medium hover:opacity-90 transition-all theme-transition"
-                  style={{
-                    backgroundColor: 'transparent',
-                    borderColor: `rgb(${colors.ui.border})`,
-                    color: `rgb(${colors.text.primary})`
-                  }}
+                  style={{ backgroundColor: 'transparent', borderColor: `rgb(${colors.ui.border})`, color: `rgb(${colors.text.primary})` }}
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
-                  disabled={!email || !confirmEmail || email !== confirmEmail}
+                  disabled={!email || !password || !nombre}
                   className="flex-1 text-white py-3 rounded-lg font-medium hover:opacity-90 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                   style={{ backgroundColor: `rgb(${colors.interactive.primary})` }}
                 >
-                  Enviar
+                  Registrar
                 </button>
               </div>
             </form>

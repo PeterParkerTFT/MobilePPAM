@@ -8,25 +8,45 @@ export class SupabaseUserRepository implements IUserRepository {
         if (!supabase) throw new Error('Supabase no está configurado');
 
         const { data, error } = await supabase
-            .from('users')
+            .from('usuarios')
             .select('*')
             .eq('email', email)
-            .single();
+            .maybeSingle();
 
         if (error) {
-            if (error.code === 'PGRST116') return null;
             console.error('Error buscando usuario por email:', error);
             return null;
         }
 
-        return this.mapToUser(data);
+        return data ? this.mapToUser(data) : null;
+    }
+
+    async authenticate(email: string, password: string): Promise<User | null> {
+        if (!supabase) throw new Error('Supabase no está configurado');
+
+        const { data, error } = await supabase.auth.signInWithPassword({
+            email,
+            password,
+        });
+
+        if (error) {
+            console.error('Error de autenticación:', error);
+            return null;
+        }
+
+        if (data.user) {
+            // Fetch profile
+            return this.findById(data.user.id);
+        }
+
+        return null;
     }
 
     async findById(id: string): Promise<User | null> {
         if (!supabase) throw new Error('Supabase no está configurado');
 
         const { data, error } = await supabase
-            .from('users')
+            .from('usuarios')
             .select('*')
             .eq('id', id)
             .single();
@@ -44,7 +64,7 @@ export class SupabaseUserRepository implements IUserRepository {
         if (!supabase) throw new Error('Supabase no está configurado');
 
         const { data, error } = await supabase
-            .from('users')
+            .from('usuarios')
             .select('*');
 
         if (error) {
@@ -58,7 +78,7 @@ export class SupabaseUserRepository implements IUserRepository {
     async search(query: { role?: UserRole; congregacion?: string; status?: UserStatus }): Promise<User[]> {
         if (!supabase) throw new Error('Supabase no está configurado');
 
-        let dbQuery = supabase.from('users').select('*');
+        let dbQuery = supabase.from('usuarios').select('*');
 
         if (query.role) dbQuery = dbQuery.eq('role', query.role);
         if (query.congregacion) dbQuery = dbQuery.eq('congregacion', query.congregacion);
@@ -74,29 +94,71 @@ export class SupabaseUserRepository implements IUserRepository {
         return data.map(this.mapToUser);
     }
 
-    async create(user: Omit<User, 'id'>): Promise<User> {
+    async create(user: Omit<User, 'id'>, password?: string): Promise<User> {
         if (!supabase) throw new Error('Supabase no está configurado');
+        if (!password) throw new Error('Password requerido para crear usuario en Supabase');
 
-        const { data, error } = await supabase
-            .from('users')
-            .insert(user)
+        // 1. Create Auth User
+        const { data: authData, error: authError } = await supabase.auth.signUp({
+            email: user.email,
+            password: password,
+            options: {
+                data: {
+                    nombre: user.nombre,
+                    role: user.role,
+                    congregacion: user.congregacion
+                }
+            }
+        });
+
+        if (authError) {
+            console.error('Error creando Auth User:', authError);
+            throw authError;
+        }
+
+        if (!authData.user) throw new Error('No se pudo crear el usuario');
+
+        // 2. Insert into public.usuarios
+        // Note: If using triggers, this might be duplicate. But if no triggers, we need this.
+        // We will attempt insert, if duplicate key constraint (from trigger), we ignore or fetch.
+        // Given we are not sure about triggers, we try to insert.
+
+        const newUserProfile = {
+            id: authData.user.id,
+            ...user,
+            // Ensure status/role are mapped correctly
+            congregacion: user.congregacion,
+            congregacion_nombre: user.congregacionNombre
+        };
+
+        const { data: dbData, error: dbError } = await supabase
+            .from('usuarios')
+            .upsert(newUserProfile) // Upsert in case trigger already created it
             .select()
             .single();
 
-        if (error) {
-            console.error('Error creando usuario:', error);
-            throw error;
+        if (dbError) {
+            console.error('Error creando perfil de usuario:', dbError);
+            // Try to delete auth user if profile creation fails? (Rollback logic omitted for simplicity)
+            throw dbError;
         }
 
-        return this.mapToUser(data);
+        return this.mapToUser(dbData);
     }
 
     async update(id: string, updates: Partial<User>): Promise<User> {
         if (!supabase) throw new Error('Supabase no está configurado');
 
+        // Map camelCase to snake_case if needed
+        const dbUpdates: any = { ...updates };
+        if (updates.congregacionNombre) {
+            dbUpdates.congregacion_nombre = updates.congregacionNombre;
+            delete dbUpdates.congregacionNombre;
+        }
+
         const { data, error } = await supabase
-            .from('users')
-            .update(updates)
+            .from('usuarios')
+            .update(dbUpdates)
             .eq('id', id)
             .select()
             .single();
@@ -110,10 +172,14 @@ export class SupabaseUserRepository implements IUserRepository {
     }
 
     async delete(id: string): Promise<boolean> {
-        if (!supabase) throw new Error('Supabase no está configurado');
+        // Deleting from public.usuarios might be enough, or delete from auth.users (requires service role key usually)
+        // Standard user cannot delete from auth.users easily without admin function.
+        // We will just mark as inactive or delete from logic.
+
+        console.warn('Delete not fully implemented for Auth Users. Only removing profile.');
 
         const { error } = await supabase
-            .from('users')
+            .from('usuarios')
             .delete()
             .eq('id', id);
 
@@ -122,45 +188,6 @@ export class SupabaseUserRepository implements IUserRepository {
             return false;
         }
         return true;
-    }
-
-    async createPending(user: Omit<PendingUser, 'id' | 'fechaSolicitud' | 'status'>): Promise<PendingUser> {
-        if (!supabase) throw new Error('Supabase no está configurado');
-
-        const newPending = {
-            ...user,
-            status: UserStatus.Pendiente,
-            fechaSolicitud: new Date().toISOString()
-        };
-
-        const { data, error } = await supabase
-            .from('pending_users')
-            .insert(newPending)
-            .select()
-            .single();
-
-        if (error) {
-            console.error('Error creando solicitud pendiente:', error);
-            throw error;
-        }
-
-        return data as PendingUser;
-    }
-
-    async checkPendingStatus(email: string): Promise<'pending' | 'rejected' | null> {
-        if (!supabase) throw new Error('Supabase no está configurado');
-
-        const { data, error } = await supabase
-            .from('pending_users')
-            .select('status')
-            .eq('email', email)
-            .maybeSingle();
-
-        if (error || !data) return null;
-
-        if (data.status === UserStatus.Pendiente) return 'pending';
-        if (data.status === UserStatus.Rechazado) return 'rejected';
-        return null;
     }
 
     private mapToUser(dbUser: any): User {

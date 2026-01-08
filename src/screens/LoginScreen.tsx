@@ -9,6 +9,7 @@ import { CongregacionService } from '../services/CongregacionService'; // [NEW]
 
 const congregacionService = new CongregacionService();
 
+
 interface LoginScreenProps {
   onLogin: (user: User) => void;
 }
@@ -37,6 +38,7 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
     nombre: '',
     email: '',
     telefono: '',
+    password: '',
     role: UserRole.Voluntario,
     congregacion: '' // Nueva propiedad para congregación
   });
@@ -47,7 +49,7 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
     password: ''
   });
 
-  const handleSignupSubmit = (e: React.FormEvent) => {
+  const handleSignupSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     // Validar que TODOS los roles (incluido Ultra Admin) deben seleccionar congregación
@@ -56,17 +58,27 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
       return;
     }
 
-    const user: User = {
-      id: Math.random().toString(36).substr(2, 9),
-      nombre: signupForm.nombre,
-      email: signupForm.email,
-      telefono: signupForm.telefono,
-      role: signupForm.role,
-      status: signupForm.role === UserRole.Capitan ? UserStatus.Pendiente : UserStatus.Aprobado,
-      congregacion: signupForm.congregacion || 'cong-001' // Todos tienen congregación de origen
-    };
+    if (signupForm.password.length < 6) {
+      alert('La contraseña debe tener al menos 6 caracteres');
+      return;
+    }
 
-    onLogin(user);
+    try {
+      const userData: Omit<User, 'id'> = {
+        nombre: signupForm.nombre,
+        email: signupForm.email,
+        telefono: signupForm.telefono,
+        role: signupForm.role,
+        status: signupForm.role === UserRole.Capitan ? UserStatus.Pendiente : UserStatus.Aprobado,
+        congregacion: signupForm.congregacion || '',
+      };
+
+      const newUser = await userService.registerUser(userData, signupForm.password);
+      onLogin(newUser);
+    } catch (error) {
+      console.error('Registration error:', error);
+      alert('Error al registrar usuario: ' + (error instanceof Error ? error.message : 'Unknown error'));
+    }
   };
 
   const handleLoginSubmit = async (e: React.FormEvent) => {
@@ -88,7 +100,7 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
 
   const resetToSplit = () => {
     setViewState('split');
-    setSignupForm({ nombre: '', email: '', telefono: '', role: UserRole.Voluntario, congregacion: '' });
+    setSignupForm({ nombre: '', email: '', telefono: '', password: '', role: UserRole.Voluntario, congregacion: '' });
     setLoginForm({ email: '', password: '' });
   };
 
@@ -214,6 +226,22 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
                     onChange={(e) => setSignupForm({ ...signupForm, email: e.target.value })}
                     className="w-full bg-white/10 border-b-2 border-white/30 text-white px-4 py-3 outline-none focus:border-white transition-colors placeholder-white/50"
                     placeholder="correo@ejemplo.com"
+                    style={{ minHeight: '44px' }}
+                  />
+                </div>
+
+                {/* Password Input NEW */}
+                <div>
+                  <label className="block text-white/90 text-sm font-light mb-2">
+                    Contraseña
+                  </label>
+                  <input
+                    type="password"
+                    required
+                    value={signupForm.password}
+                    onChange={(e) => setSignupForm({ ...signupForm, password: e.target.value })}
+                    className="w-full bg-white/10 border-b-2 border-white/30 text-white px-4 py-3 outline-none focus:border-white transition-colors placeholder-white/50"
+                    placeholder="••••••••"
                     style={{ minHeight: '44px' }}
                   />
                 </div>

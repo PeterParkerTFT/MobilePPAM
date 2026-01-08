@@ -1,74 +1,46 @@
-import React, { useState } from 'react';
-import { User } from '../types/models';
+import React, { useState, useEffect } from 'react';
+import { User, PendingUser } from '../types/models';
 import { UserRole } from '../types/enums';
 import { HeaderWithTheme } from '../components/HeaderWithTheme';
 import { useThemeColors } from '../hooks/useThemeColors';
-import { UserCheck, X, Check, Clock, AlertCircle, Church } from 'lucide-react';
+import { UserCheck, X, Check, Clock, AlertCircle, Building2, Loader2, RefreshCw } from 'lucide-react';
 import { getCongregacionNombre } from '../data/congregaciones';
+import { useUser } from '../contexts/UserContext';
 
 interface AprobacionesScreenProps {
   user: User;
   onLogout: () => void;
-  onNavigateToInformes?: () => void; // Nueva prop
-}
-
-interface SolicitudCapitan {
-  id: string;
-  nombre: string;
-  email: string;
-  telefono: string;
-  fechaSolicitud: string;
-  status: 'pendiente' | 'aprobado' | 'rechazado';
-  especialidad?: string;
-  congregacion: string; // ID de la congregación
+  onNavigateToInformes?: () => void;
 }
 
 export function AprobacionesScreen({ user, onLogout, onNavigateToInformes }: AprobacionesScreenProps) {
+  const { userService } = useUser();
   const [showMenu, setShowMenu] = useState(false);
-  const [solicitudes, setSolicitudes] = useState<SolicitudCapitan[]>([
-    {
-      id: 'sol1',
-      nombre: 'Pedro Ramírez González',
-      email: 'pedro.ramirez@ejemplo.com',
-      telefono: '+52 555 111 2222',
-      fechaSolicitud: '2025-01-03',
-      status: 'pendiente',
-      especialidad: 'Guías',
-      congregacion: 'cong-001' // Villa Guerrero
-    },
-    {
-      id: 'sol2',
-      nombre: 'María Fernández Torres',
-      email: 'maria.fernandez@ejemplo.com',
-      telefono: '+52 555 222 3333',
-      fechaSolicitud: '2025-01-02',
-      status: 'pendiente',
-      especialidad: 'Expositores',
-      congregacion: 'cong-002' // Lomas de Polanco
-    },
-    {
-      id: 'sol3',
-      nombre: 'Carlos López Martínez',
-      email: 'carlos.lopez@ejemplo.com',
-      telefono: '+52 555 333 4444',
-      fechaSolicitud: '2025-01-01',
-      status: 'aprobado',
-      especialidad: 'Escuelas',
-      congregacion: 'cong-001' // Villa Guerrero
-    },
-    {
-      id: 'sol4',
-      nombre: 'Ana García Pérez',
-      email: 'ana.garcia@ejemplo.com',
-      telefono: '+52 555 444 5555',
-      fechaSolicitud: '2025-01-04',
-      status: 'pendiente',
-      especialidad: 'Editoriales',
-      congregacion: 'cong-004' // La Calma
-    }
-  ]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isProcessing, setIsProcessing] = useState<string | null>(null);
+  const [solicitudes, setSolicitudes] = useState<PendingUser[]>([]);
+  const [error, setError] = useState<string | null>(null);
 
   const colors = useThemeColors();
+
+  // Load pending users on mount
+  useEffect(() => {
+    loadSolicitudes();
+  }, [user]);
+
+  const loadSolicitudes = async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const data = await userService.fetchPendingUsers(user);
+      setSolicitudes(data);
+    } catch (err) {
+      console.error('Error loading pending users:', err);
+      setError('No se pudieron cargar las solicitudes. Por favor intente de nuevo.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   // Solo admin y ultraadmin pueden ver esta pantalla
   if (user.role !== UserRole.AdminLocal && user.role !== UserRole.AdminGlobal) {
@@ -88,28 +60,49 @@ export function AprobacionesScreen({ user, onLogout, onNavigateToInformes }: Apr
     );
   }
 
-  // Filtrar solicitudes según el tipo de admin
-  const solicitudesFiltradas = user.role === UserRole.AdminGlobal
-    ? solicitudes // Ultra admin ve todas las solicitudes
-    : solicitudes.filter(s => s.congregacion === user.congregacion); // Admin normal solo ve de su congregación
-
-  const handleAprobar = (id: string) => {
-    setSolicitudes(prev => prev.map(s =>
-      s.id === id ? { ...s, status: 'aprobado' as const } : s
-    ));
+  const handleAprobar = async (id: string) => {
+    if (isProcessing) return;
+    setIsProcessing(id);
+    try {
+      const result = await userService.approveUser(id, user);
+      if (result.success) {
+        // Remove from list
+        setSolicitudes(prev => prev.filter(s => s.id !== id));
+        // Optional: Show success toast
+      } else {
+        alert('Error al aprobar: ' + result.error);
+      }
+    } catch (err) {
+      console.error('Error approving user:', err);
+      alert('Ocurrió un error inesperado al aprobar');
+    } finally {
+      setIsProcessing(null);
+    }
   };
 
-  const handleRechazar = (id: string) => {
-    setSolicitudes(prev => prev.map(s =>
-      s.id === id ? { ...s, status: 'rechazado' as const } : s
-    ));
-  };
+  const handleRechazar = async (id: string) => {
+    if (!window.confirm('¿Está seguro de rechazar esta solicitud?')) return;
 
-  const solicitudesPendientes = solicitudesFiltradas.filter(s => s.status === 'pendiente');
-  const solicitudesAprobadas = solicitudesFiltradas.filter(s => s.status === 'aprobado');
-  const solicitudesRechazadas = solicitudesFiltradas.filter(s => s.status === 'rechazado');
+    if (isProcessing) return;
+    setIsProcessing(id);
+    try {
+      const result = await userService.rejectUser(id, user, 'Rechazado por administrador');
+      if (result.success) {
+        // Remove from list
+        setSolicitudes(prev => prev.filter(s => s.id !== id));
+      } else {
+        alert('Error al rechazar: ' + result.error);
+      }
+    } catch (err) {
+      console.error('Error rejecting user:', err);
+      alert('Ocurrió un error inesperado al rechazar');
+    } finally {
+      setIsProcessing(null);
+    }
+  };
 
   const formatFecha = (dateStr: string) => {
+    if (!dateStr) return 'Fecha desc.';
     const date = new Date(dateStr);
     const days = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
     const months = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
@@ -150,71 +143,59 @@ export function AprobacionesScreen({ user, onLogout, onNavigateToInformes }: Apr
               </>
             ) : (
               <>
-                <Church className="w-3.5 h-3.5" strokeWidth={2} />
+                <Building2 className="w-3.5 h-3.5" strokeWidth={2} />
                 {getCongregacionNombre(user.congregacion || '')}
               </>
             )}
           </div>
+
+          <button
+            onClick={loadSolicitudes}
+            disabled={isLoading}
+            className="p-1.5 rounded-full hover:bg-black/5 active:bg-black/10 transition-colors"
+          >
+            <RefreshCw className={`w-4 h-4 text-gray-500 ${isLoading ? 'animate-spin' : ''}`} />
+          </button>
         </div>
 
-        {/* Estadísticas */}
-        <div
-          className="rounded-xl p-4 mb-6 shadow-md theme-transition"
-          style={{
-            backgroundColor: `rgb(${colors.bg.secondary})`,
-            border: `1px solid rgb(${colors.ui.border})`
-          }}
-        >
-          <div className="grid grid-cols-3 gap-3">
-            <div className="text-center">
-              <div
-                className="text-2xl font-bold mb-1"
-                style={{ color: '#f59e0b' }}
-              >
-                {solicitudesPendientes.length}
-              </div>
-              <div
-                className="text-xs"
-                style={{ color: `rgb(${colors.text.secondary})` }}
-              >
-                Pendientes
-              </div>
-            </div>
-
-            <div className="text-center">
-              <div
-                className="text-2xl font-bold mb-1"
-                style={{ color: '#10b981' }}
-              >
-                {solicitudesAprobadas.length}
-              </div>
-              <div
-                className="text-xs"
-                style={{ color: `rgb(${colors.text.secondary})` }}
-              >
-                Aprobados
-              </div>
-            </div>
-
-            <div className="text-center">
-              <div
-                className="text-2xl font-bold mb-1"
-                style={{ color: '#ef4444' }}
-              >
-                {solicitudesRechazadas.length}
-              </div>
-              <div
-                className="text-xs"
-                style={{ color: `rgb(${colors.text.secondary})` }}
-              >
-                Rechazados
-              </div>
-            </div>
+        {/* Error State */}
+        {error && (
+          <div className="mb-4 p-4 rounded-xl bg-red-50 text-red-600 text-sm border border-red-100 flex items-center gap-2">
+            <AlertCircle className="w-5 h-5 flex-shrink-0" />
+            {error}
           </div>
-        </div>
+        )}
 
-        {/* SOLICITUDES PENDIENTES */}
-        {solicitudesPendientes.length > 0 && (
+        {/* Loading State */}
+        {isLoading && !error && (
+          <div className="text-center py-12">
+            <Loader2 className="w-8 h-8 mx-auto mb-2 animate-spin text-[#594396]" />
+            <p className="text-sm text-gray-500">Cargando solicitudes...</p>
+          </div>
+        )}
+
+        {/* Empty State */}
+        {!isLoading && !error && solicitudes.length === 0 && (
+          <div className="text-center py-12">
+            <div className="text-6xl mb-3">✅</div>
+            <h3
+              className="font-semibold mb-2"
+              style={{ color: `rgb(${colors.text.primary})` }}
+            >
+              No hay solicitudes
+            </h3>
+            <p
+              className="text-sm"
+              style={{ color: `rgb(${colors.text.secondary})` }}
+            >
+              Todas las solicitudes de capitanes están procesadas
+            </p>
+          </div>
+        )}
+
+
+        {/* SOLICITUDES LIST */}
+        {!isLoading && !error && solicitudes.length > 0 && (
           <div className="mb-6">
             <div className="flex items-center gap-2 mb-3">
               <Clock className="w-5 h-5 text-orange-500" />
@@ -222,12 +203,12 @@ export function AprobacionesScreen({ user, onLogout, onNavigateToInformes }: Apr
                 className="font-semibold text-lg"
                 style={{ color: `rgb(${colors.text.primary})` }}
               >
-                Pendientes de Aprobación ({solicitudesPendientes.length})
+                Pendientes de Aprobación ({solicitudes.length})
               </h3>
             </div>
 
             <div className="space-y-3">
-              {solicitudesPendientes.map((solicitud) => (
+              {solicitudes.map((solicitud) => (
                 <div
                   key={solicitud.id}
                   className="rounded-xl p-4 shadow-md theme-transition"
@@ -278,13 +259,13 @@ export function AprobacionesScreen({ user, onLogout, onNavigateToInformes }: Apr
                     className="text-xs mb-2 flex items-center gap-1.5"
                     style={{ color: `rgb(${colors.text.secondary})` }}
                   >
-                    <Church className="w-3.5 h-3.5" strokeWidth={2} />
+                    <Building2 className="w-3.5 h-3.5" strokeWidth={2} />
                     <span className="font-semibold" style={{ color: `rgb(${colors.interactive.primary})` }}>
                       {getCongregacionNombre(solicitud.congregacion)}
                     </span>
                   </div>
 
-                  {/* Especialidad */}
+                  {/* Especialidad (if existed in PendingUser, currently likely mapped but maybe undefined) */}
                   {solicitud.especialidad && (
                     <div
                       className="text-xs mb-3 flex items-center gap-1"
@@ -299,22 +280,24 @@ export function AprobacionesScreen({ user, onLogout, onNavigateToInformes }: Apr
                   <div className="flex gap-2">
                     <button
                       onClick={() => handleRechazar(solicitud.id)}
-                      className="flex-1 py-2.5 rounded-lg font-medium text-sm transition-all flex items-center justify-center gap-2 border"
+                      disabled={isProcessing === solicitud.id}
+                      className="flex-1 py-2.5 rounded-lg font-medium text-sm transition-all flex items-center justify-center gap-2 border disabled:opacity-50"
                       style={{
                         backgroundColor: 'transparent',
                         borderColor: '#ef4444',
                         color: '#ef4444'
                       }}
                     >
-                      <X className="w-4 h-4" />
+                      {isProcessing === solicitud.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <X className="w-4 h-4" />}
                       Rechazar
                     </button>
                     <button
                       onClick={() => handleAprobar(solicitud.id)}
-                      className="flex-1 py-2.5 rounded-lg font-medium text-sm transition-all flex items-center justify-center gap-2 text-white"
+                      disabled={isProcessing === solicitud.id}
+                      className="flex-1 py-2.5 rounded-lg font-medium text-sm transition-all flex items-center justify-center gap-2 text-white disabled:opacity-50"
                       style={{ backgroundColor: '#10b981' }}
                     >
-                      <Check className="w-4 h-4" />
+                      {isProcessing === solicitud.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
                       Aprobar
                     </button>
                   </div>
@@ -323,125 +306,7 @@ export function AprobacionesScreen({ user, onLogout, onNavigateToInformes }: Apr
             </div>
           </div>
         )}
-
-        {/* SOLICITUDES APROBADAS */}
-        {solicitudesAprobadas.length > 0 && (
-          <div className="mb-6">
-            <div className="flex items-center gap-2 mb-3">
-              <Check className="w-5 h-5 text-green-500" />
-              <h3
-                className="font-semibold text-lg"
-                style={{ color: `rgb(${colors.text.primary})` }}
-              >
-                Aprobados ({solicitudesAprobadas.length})
-              </h3>
-            </div>
-
-            <div className="space-y-2">
-              {solicitudesAprobadas.map((solicitud) => (
-                <div
-                  key={solicitud.id}
-                  className="rounded-lg p-3 theme-transition"
-                  style={{
-                    backgroundColor: `rgb(${colors.bg.secondary})`,
-                    border: '1px solid rgba(16, 185, 129, 0.3)'
-                  }}
-                >
-                  <div className="flex items-center gap-3">
-                    <Check className="w-5 h-5 text-green-500 flex-shrink-0" />
-                    <div className="flex-1 min-w-0">
-                      <div
-                        className="font-medium text-sm"
-                        style={{ color: `rgb(${colors.text.primary})` }}
-                      >
-                        {solicitud.nombre}
-                      </div>
-                      <div
-                        className="text-xs"
-                        style={{ color: `rgb(${colors.text.secondary})` }}
-                      >
-                        {solicitud.email}
-                      </div>
-                    </div>
-                    <span className="text-xs text-green-600 font-medium">
-                      Aprobado
-                    </span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* SOLICITUDES RECHAZADAS */}
-        {solicitudesRechazadas.length > 0 && (
-          <div className="mb-6">
-            <div className="flex items-center gap-2 mb-3">
-              <X className="w-5 h-5 text-red-500" />
-              <h3
-                className="font-semibold text-lg"
-                style={{ color: `rgb(${colors.text.primary})` }}
-              >
-                Rechazados ({solicitudesRechazadas.length})
-              </h3>
-            </div>
-
-            <div className="space-y-2">
-              {solicitudesRechazadas.map((solicitud) => (
-                <div
-                  key={solicitud.id}
-                  className="rounded-lg p-3 theme-transition"
-                  style={{
-                    backgroundColor: `rgb(${colors.bg.secondary})`,
-                    border: '1px solid rgba(239, 68, 68, 0.3)'
-                  }}
-                >
-                  <div className="flex items-center gap-3">
-                    <X className="w-5 h-5 text-red-500 flex-shrink-0" />
-                    <div className="flex-1 min-w-0">
-                      <div
-                        className="font-medium text-sm"
-                        style={{ color: `rgb(${colors.text.primary})` }}
-                      >
-                        {solicitud.nombre}
-                      </div>
-                      <div
-                        className="text-xs"
-                        style={{ color: `rgb(${colors.text.secondary})` }}
-                      >
-                        {solicitud.email}
-                      </div>
-                    </div>
-                    <span className="text-xs text-red-600 font-medium">
-                      Rechazado
-                    </span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {solicitudesPendientes.length === 0 && solicitudesAprobadas.length === 0 && solicitudesRechazadas.length === 0 && (
-          <div className="text-center py-12">
-            <div className="text-6xl mb-3">✅</div>
-            <h3
-              className="font-semibold mb-2"
-              style={{ color: `rgb(${colors.text.primary})` }}
-            >
-              No hay solicitudes
-            </h3>
-            <p
-              className="text-sm"
-              style={{ color: `rgb(${colors.text.secondary})` }}
-            >
-              Todas las solicitudes de capitanes están procesadas
-            </p>
-          </div>
-        )}
       </div>
-
-      {/* Offline indicator - Removed for production polish until fully implemented with PWA */}
     </div>
   );
 }

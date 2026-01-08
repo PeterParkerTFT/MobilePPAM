@@ -109,7 +109,7 @@ export interface Sitio {
   id: string;
   nombre: string;
   direccion?: string;
-  coordenadas?: string;
+  coordenadas?: { lat: number; lng: number }; // Changed from string to object
   tipo: 'caminata' | 'fijo';
   congregacionId: string;
 }
@@ -167,4 +167,29 @@ export interface Informe {
   cursos: number;
   observaciones?: string;
   estado: 'borrador' | 'enviado' | 'aprobado';
+}
+
+/**
+ * Reporte de un turno específico (Feedback del voluntario)
+ */
+export interface ReporteTurno {
+  id: string; // ID de la asignación (turno_voluntarios.id)
+  turnoId: string;
+  voluntarioId: string;
+  voluntarioNombre?: string;
+  tipo: 'caminata' | 'fijo' | string; // Permitir string para flexibilidad
+  titulo: string;
+  fecha: string;
+  horaInicio: string;
+  horaFin: string;
+  ubicacion: string;
+  capitanId?: string;
+  capitanNombre?: string;
+  status: 'pendiente' | 'realizado';
+
+  // Datos del reporte
+  asistio?: boolean;
+  comentarios?: string;
+  experiencia?: string;
+  fechaReporte?: string;
 }

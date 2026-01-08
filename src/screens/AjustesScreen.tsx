@@ -8,17 +8,18 @@
  * @architecture SOLID - Single Responsibility + Open/Closed
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { User } from '../types/models';
-import { 
-  Camera, 
-  User as UserIcon, 
-  Mail, 
-  Phone, 
-  Church, 
-  Settings, 
-  Building, 
-  Users, 
+import { UserRole } from '../types/enums';
+import {
+  Camera,
+  User as UserIcon,
+  Mail,
+  Phone,
+  Building2,
+  Settings,
+  Building,
+  Users,
   LogOut,
   Edit2,
   Check,
@@ -64,22 +65,46 @@ const getRoleLabel = (role: string): string => {
 // ==========================================
 // VISTA A: Mi Perfil Personal
 // ==========================================
+import { useUser } from '../contexts/UserContext';
+import { Loader2 } from 'lucide-react';
 
 function MiPerfilView({ user, onLogout }: AjustesScreenProps) {
+  const { userService, login } = useUser();
   const colors = useThemeColors();
   const [isEditingName, setIsEditingName] = useState(false);
   const [isEditingPhone, setIsEditingPhone] = useState(false);
   const [nombre, setNombre] = useState(user.nombre);
   const [telefono, setTelefono] = useState(user.telefono);
+  const [isSaving, setIsSaving] = useState(false);
 
-  const handleSaveName = () => {
-    // TODO: Guardar en BD
-    setIsEditingName(false);
+  const handleSaveName = async () => {
+    if (!nombre.trim()) return;
+    setIsSaving(true);
+    try {
+      const updatedUser = await userService.update(user.id, { nombre });
+      login(updatedUser); // Update local state and storage
+      setIsEditingName(false);
+    } catch (error) {
+      console.error('Error updating name:', error);
+      alert('Error al actualizar nombre. Intente de nuevo.');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
-  const handleSavePhone = () => {
-    // TODO: Guardar en BD
-    setIsEditingPhone(false);
+  const handleSavePhone = async () => {
+    if (!telefono.trim()) return;
+    setIsSaving(true);
+    try {
+      const updatedUser = await userService.update(user.id, { telefono });
+      login(updatedUser); // Update local state and storage
+      setIsEditingPhone(false);
+    } catch (error) {
+      console.error('Error updating phone:', error);
+      alert('Error al actualizar teléfono. Intente de nuevo.');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
@@ -89,13 +114,13 @@ function MiPerfilView({ user, onLogout }: AjustesScreenProps) {
         <div className="flex flex-col items-center mb-6">
           {/* Avatar grande */}
           <div className="relative mb-4">
-            <div 
+            <div
               className="w-32 h-32 rounded-full flex items-center justify-center text-4xl font-bold text-white shadow-lg"
               style={{ backgroundColor: '#594396' }}
             >
               {user.nombre.charAt(0).toUpperCase()}
             </div>
-            
+
             {/* Botón de cámara */}
             <button
               className="absolute bottom-0 right-0 w-10 h-10 bg-white rounded-full shadow-lg flex items-center justify-center border-2 hover:scale-110 transition-transform"
@@ -106,13 +131,13 @@ function MiPerfilView({ user, onLogout }: AjustesScreenProps) {
           </div>
 
           {/* Nombre del usuario */}
-          <h2 
+          <h2
             className="text-2xl font-semibold mb-1"
             style={{ color: `rgb(${colors.text.primary})` }}
           >
             {user.nombre}
           </h2>
-          <p 
+          <p
             className="text-sm"
             style={{ color: `rgb(${colors.text.secondary})` }}
           >
@@ -121,16 +146,16 @@ function MiPerfilView({ user, onLogout }: AjustesScreenProps) {
         </div>
 
         {/* Sección de ayuda para foto */}
-        <div 
+        <div
           className="rounded-xl p-4 mb-6"
-          style={{ 
+          style={{
             backgroundColor: 'rgba(89, 67, 150, 0.05)',
             border: '1px solid rgba(89, 67, 150, 0.2)'
           }}
         >
           <div className="flex items-start gap-3">
             <div className="flex-shrink-0 mt-1">
-              <div 
+              <div
                 className="w-10 h-10 rounded-full flex items-center justify-center"
                 style={{ backgroundColor: 'rgba(89, 67, 150, 0.1)' }}
               >
@@ -138,13 +163,13 @@ function MiPerfilView({ user, onLogout }: AjustesScreenProps) {
               </div>
             </div>
             <div className="flex-1">
-              <h3 
+              <h3
                 className="font-semibold mb-1"
                 style={{ color: '#594396' }}
               >
                 Tu Foto de Perfil
               </h3>
-              <p 
+              <p
                 className="text-sm leading-relaxed"
                 style={{ color: `rgb(${colors.text.secondary})` }}
               >
@@ -157,7 +182,7 @@ function MiPerfilView({ user, onLogout }: AjustesScreenProps) {
 
       {/* Información Personal */}
       <div className="mb-6">
-        <h3 
+        <h3
           className="text-lg font-semibold mb-4 flex items-center gap-2"
           style={{ color: `rgb(${colors.text.primary})` }}
         >
@@ -166,14 +191,14 @@ function MiPerfilView({ user, onLogout }: AjustesScreenProps) {
         </h3>
 
         {/* Nombre */}
-        <div 
+        <div
           className="rounded-xl p-4 mb-3"
-          style={{ 
+          style={{
             backgroundColor: `rgb(${colors.bg.secondary})`,
             border: `1px solid rgb(${colors.ui.border})`
           }}
         >
-          <label 
+          <label
             className="text-xs font-medium mb-2 block"
             style={{ color: `rgb(${colors.text.tertiary})` }}
           >
@@ -186,8 +211,9 @@ function MiPerfilView({ user, onLogout }: AjustesScreenProps) {
                   type="text"
                   value={nombre}
                   onChange={(e) => setNombre(e.target.value)}
-                  className="flex-1 px-3 py-2 rounded-lg border outline-none"
-                  style={{ 
+                  disabled={isSaving}
+                  className="flex-1 px-3 py-2 rounded-lg border outline-none disabled:opacity-50"
+                  style={{
                     borderColor: '#594396',
                     color: `rgb(${colors.text.primary})`,
                     backgroundColor: `rgb(${colors.bg.primary})`
@@ -196,17 +222,19 @@ function MiPerfilView({ user, onLogout }: AjustesScreenProps) {
                 />
                 <button
                   onClick={handleSaveName}
-                  className="p-2 rounded-lg hover:opacity-80 transition-opacity"
+                  disabled={isSaving}
+                  className="p-2 rounded-lg hover:opacity-80 transition-opacity disabled:opacity-50"
                   style={{ backgroundColor: '#10b981', color: 'white' }}
                 >
-                  <Check className="w-5 h-5" />
+                  {isSaving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Check className="w-5 h-5" />}
                 </button>
                 <button
                   onClick={() => {
                     setNombre(user.nombre);
                     setIsEditingName(false);
                   }}
-                  className="p-2 rounded-lg hover:opacity-80 transition-opacity"
+                  disabled={isSaving}
+                  className="p-2 rounded-lg hover:opacity-80 transition-opacity disabled:opacity-50"
                   style={{ backgroundColor: '#ef4444', color: 'white' }}
                 >
                   <X className="w-5 h-5" />
@@ -214,11 +242,11 @@ function MiPerfilView({ user, onLogout }: AjustesScreenProps) {
               </>
             ) : (
               <>
-                <span 
+                <span
                   className="flex-1 font-medium"
                   style={{ color: `rgb(${colors.text.primary})` }}
                 >
-                  {nombre}
+                  {user.nombre}
                 </span>
                 <button
                   onClick={() => setIsEditingName(true)}
@@ -233,14 +261,14 @@ function MiPerfilView({ user, onLogout }: AjustesScreenProps) {
         </div>
 
         {/* Teléfono */}
-        <div 
+        <div
           className="rounded-xl p-4 mb-3"
-          style={{ 
+          style={{
             backgroundColor: `rgb(${colors.bg.secondary})`,
             border: `1px solid rgb(${colors.ui.border})`
           }}
         >
-          <label 
+          <label
             className="text-xs font-medium mb-2 flex items-center gap-1"
             style={{ color: `rgb(${colors.text.tertiary})` }}
           >
@@ -254,8 +282,9 @@ function MiPerfilView({ user, onLogout }: AjustesScreenProps) {
                   type="tel"
                   value={telefono}
                   onChange={(e) => setTelefono(e.target.value)}
-                  className="flex-1 px-3 py-2 rounded-lg border outline-none"
-                  style={{ 
+                  disabled={isSaving}
+                  className="flex-1 px-3 py-2 rounded-lg border outline-none disabled:opacity-50"
+                  style={{
                     borderColor: '#594396',
                     color: `rgb(${colors.text.primary})`,
                     backgroundColor: `rgb(${colors.bg.primary})`
@@ -264,17 +293,19 @@ function MiPerfilView({ user, onLogout }: AjustesScreenProps) {
                 />
                 <button
                   onClick={handleSavePhone}
-                  className="p-2 rounded-lg hover:opacity-80 transition-opacity"
+                  disabled={isSaving}
+                  className="p-2 rounded-lg hover:opacity-80 transition-opacity disabled:opacity-50"
                   style={{ backgroundColor: '#10b981', color: 'white' }}
                 >
-                  <Check className="w-5 h-5" />
+                  {isSaving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Check className="w-5 h-5" />}
                 </button>
                 <button
                   onClick={() => {
                     setTelefono(user.telefono);
                     setIsEditingPhone(false);
                   }}
-                  className="p-2 rounded-lg hover:opacity-80 transition-opacity"
+                  disabled={isSaving}
+                  className="p-2 rounded-lg hover:opacity-80 transition-opacity disabled:opacity-50"
                   style={{ backgroundColor: '#ef4444', color: 'white' }}
                 >
                   <X className="w-5 h-5" />
@@ -282,11 +313,11 @@ function MiPerfilView({ user, onLogout }: AjustesScreenProps) {
               </>
             ) : (
               <>
-                <span 
+                <span
                   className="flex-1 font-medium"
                   style={{ color: `rgb(${colors.text.primary})` }}
                 >
-                  {telefono}
+                  {user.telefono}
                 </span>
                 <button
                   onClick={() => setIsEditingPhone(true)}
@@ -301,14 +332,14 @@ function MiPerfilView({ user, onLogout }: AjustesScreenProps) {
         </div>
 
         {/* Correo (Solo lectura) */}
-        <div 
+        <div
           className="rounded-xl p-4"
-          style={{ 
+          style={{
             backgroundColor: `rgb(${colors.bg.secondary})`,
             border: `1px solid rgb(${colors.ui.border})`
           }}
         >
-          <label 
+          <label
             className="text-xs font-medium mb-2 flex items-center gap-1"
             style={{ color: `rgb(${colors.text.tertiary})` }}
           >
@@ -316,15 +347,15 @@ function MiPerfilView({ user, onLogout }: AjustesScreenProps) {
             Correo Electrónico
           </label>
           <div className="flex items-center gap-2">
-            <span 
+            <span
               className="flex-1 font-medium"
               style={{ color: `rgb(${colors.text.primary})` }}
             >
               {user.email}
             </span>
-            <span 
+            <span
               className="px-2 py-1 rounded text-xs"
-              style={{ 
+              style={{
                 backgroundColor: `rgb(${colors.bg.tertiary})`,
                 color: `rgb(${colors.text.tertiary})`
               }}
@@ -337,17 +368,17 @@ function MiPerfilView({ user, onLogout }: AjustesScreenProps) {
 
       {/* Tarjeta de Asignación */}
       <div className="mb-8">
-        <h3 
+        <h3
           className="text-lg font-semibold mb-4 flex items-center gap-2"
           style={{ color: `rgb(${colors.text.primary})` }}
         >
-          <Church className="w-5 h-5" />
+          <Building2 className="w-5 h-5" />
           Tu Asignación
         </h3>
 
-        <div 
+        <div
           className="rounded-xl p-5"
-          style={{ 
+          style={{
             backgroundColor: 'rgba(89, 67, 150, 0.05)',
             border: '2px solid rgba(89, 67, 150, 0.2)'
           }}
@@ -355,23 +386,23 @@ function MiPerfilView({ user, onLogout }: AjustesScreenProps) {
           {/* Congregación - Solo si tiene una asignada */}
           {user.congregacion && (
             <div className="mb-4">
-              <label 
+              <label
                 className="text-xs font-medium mb-2 block"
                 style={{ color: '#594396' }}
               >
-                {user.role === 'ultraadmin' ? 'Congregación de Origen' : 'Congregación'}
+                {user.role === UserRole.AdminGlobal ? 'Congregación de Origen' : 'Congregación'}
               </label>
               <div className="flex items-center gap-2">
-                <Church className="w-5 h-5" style={{ color: '#594396' }} />
-                <span 
+                <Building2 className="w-5 h-5" style={{ color: '#594396' }} />
+                <span
                   className="font-semibold text-lg"
                   style={{ color: `rgb(${colors.text.primary})` }}
                 >
                   {getCongregacionNombre(user.congregacion)}
                 </span>
               </div>
-              {user.role === 'ultraadmin' && (
-                <p 
+              {user.role === UserRole.AdminGlobal && (
+                <p
                   className="text-xs mt-1 italic"
                   style={{ color: `rgb(${colors.text.tertiary})` }}
                 >
@@ -383,7 +414,7 @@ function MiPerfilView({ user, onLogout }: AjustesScreenProps) {
 
           {/* Rol */}
           <div>
-            <label 
+            <label
               className="text-xs font-medium mb-2 block"
               style={{ color: '#594396' }}
             >
@@ -391,7 +422,7 @@ function MiPerfilView({ user, onLogout }: AjustesScreenProps) {
             </label>
             <div className="flex items-center gap-2">
               <Shield className="w-5 h-5" style={{ color: '#594396' }} />
-              <span 
+              <span
                 className="font-semibold text-lg"
                 style={{ color: `rgb(${colors.text.primary})` }}
               >
@@ -401,16 +432,16 @@ function MiPerfilView({ user, onLogout }: AjustesScreenProps) {
           </div>
 
           {/* Nota */}
-          <div 
+          <div
             className="mt-4 pt-4 text-xs italic flex items-start gap-2"
-            style={{ 
+            style={{
               borderTop: '1px solid rgba(89, 67, 150, 0.2)',
               color: `rgb(${colors.text.secondary})`
             }}
           >
             <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" style={{ color: '#594396' }} />
             <span>
-              {user.congregacion 
+              {user.congregacion
                 ? 'Si necesitas cambiar tu congregación o rol, contacta a un administrador del sistema.'
                 : 'Tienes acceso global a todas las congregaciones del sistema.'}
             </span>
@@ -422,7 +453,7 @@ function MiPerfilView({ user, onLogout }: AjustesScreenProps) {
       <button
         onClick={onLogout}
         className="w-full py-4 rounded-xl font-semibold flex items-center justify-center gap-2 transition-all hover:opacity-90"
-        style={{ 
+        style={{
           backgroundColor: 'rgba(239, 68, 68, 0.1)',
           color: '#ef4444',
           border: '1px solid rgba(239, 68, 68, 0.2)'
@@ -438,139 +469,210 @@ function MiPerfilView({ user, onLogout }: AjustesScreenProps) {
 // ==========================================
 // VISTA B: Panel de Supervisión Global (Solo Ultra Admin)
 // ==========================================
+import { CongregacionService } from '../services/CongregacionService';
+import { UserFilters, Congregacion, Sitio } from '../types/models';
+import { UserStatus } from '../types/enums';
 
-// Tipos para el panel
-interface Usuario {
-  id: string;
-  nombre: string;
-  email: string;
-  telefono: string;
-  congregacion: string;
-  role: 'admin' | 'capitan' | 'voluntario';
-  activo: boolean;
-  fechaAlta: string;
-}
-
-interface Ubicacion {
-  id: string;
-  nombre: string;
-  direccion: string;
-  tipo: 'bodega' | 'punto_encuentro';
-  foto?: string;
-  latitud?: number;
-  longitud?: number;
-}
-
-type TabType = 'congregaciones' | 'ubicaciones' | 'puntos_encuentro' | 'usuarios';
+type TabType = 'congregaciones' | 'sitios' | 'usuarios';
 
 function PanelGlobalView({ user, onLogout }: AjustesScreenProps) {
+  const { userService } = useUser();
   const colors = useThemeColors();
   const [activeTab, setActiveTab] = useState<TabType>('congregaciones');
   const [searchTerm, setSearchTerm] = useState('');
-  const [roleFilter, setRoleFilter] = useState<'all' | 'admin' | 'capitan' | 'voluntario'>('all');
+  const [roleFilter, setRoleFilter] = useState<UserRole | 'all'>('all');
 
-  // Mock de usuarios del sistema
-  const [usuarios] = useState<Usuario[]>([
-    {
-      id: 'admin-1',
-      nombre: 'Elder García López',
-      email: 'elder.garcia@ejemplo.com',
-      telefono: '+52 555 000 0001',
-      congregacion: 'cong-001',
-      role: 'admin',
-      activo: true,
-      fechaAlta: '2024-12-01'
-    },
-    {
-      id: 'admin-2',
-      nombre: 'Elder Martínez',
-      email: 'elder.martinez@ejemplo.com',
-      telefono: '+52 555 000 0002',
-      congregacion: 'cong-002',
-      role: 'admin',
-      activo: true,
-      fechaAlta: '2024-12-05'
-    },
-    {
-      id: 'cap-1',
-      nombre: 'Chelsea Maheda De Gonzalez',
-      email: 'chelsea@ejemplo.com',
-      telefono: '+52 555 345 6789',
-      congregacion: 'cong-001',
-      role: 'capitan',
-      activo: true,
-      fechaAlta: '2024-11-20'
-    },
-    {
-      id: 'vol-1',
-      nombre: 'Aranza Jiménez',
-      email: 'aranza@ejemplo.com',
-      telefono: '+52 555 456 7890',
-      congregacion: 'cong-001',
-      role: 'voluntario',
-      activo: true,
-      fechaAlta: '2024-12-10'
-    },
-  ]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [usersData, setUsersData] = useState<User[]>([]);
+  const [congregacionesData, setCongregacionesData] = useState<Congregacion[]>([]);
+  const [sitiosData, setSitiosData] = useState<Sitio[]>([]);
 
-  // Mock de ubicaciones
-  const [ubicaciones] = useState<Ubicacion[]>([
-    {
-      id: 'bod-1',
-      nombre: 'Bodega Central Guadalajara',
-      direccion: 'Av. López Mateos 2375, Guadalajara, Jalisco',
-      tipo: 'bodega'
-    },
-    {
-      id: 'bod-2',
-      nombre: 'Bodega Zapopan Norte',
-      direccion: 'Calle Tesistán 450, Zapopan, Jalisco',
-      tipo: 'bodega'
-    },
-  ]);
+  // Modal States
+  const [showCongregacionModal, setShowCongregacionModal] = useState(false);
+  const [editingCongregacion, setEditingCongregacion] = useState<Congregacion | null>(null);
 
-  // Mock de puntos de encuentro
-  const [puntosEncuentro] = useState<Ubicacion[]>([
-    {
-      id: 'pe-1',
-      nombre: 'Plaza del Sol - Entrada Sur',
-      direccion: 'Av. López Mateos Sur 2077, Guadalajara',
-      tipo: 'punto_encuentro',
-      foto: undefined
-    },
-    {
-      id: 'pe-2',
-      nombre: 'Parque Metropolitano',
-      direccion: 'Av. Mariano Otero, Zapopan',
-      tipo: 'punto_encuentro',
-      foto: undefined
-    },
-  ]);
+  // User Modal State
+  const [showUserModal, setShowUserModal] = useState(false);
+  const [editingUser, setEditingUser] = useState<User | null>(null);
+  const [userForm, setUserForm] = useState({
+    role: UserRole.Voluntario,
+    congregacion: '',
+    status: UserStatus.Pendiente
+  });
+  const [congForm, setCongForm] = useState({ nombre: '', circuito: '', ciudad: '' });
+
+  const [showSitioModal, setShowSitioModal] = useState(false);
+  const [editingSitio, setEditingSitio] = useState<Sitio | null>(null);
+  const [sitioForm, setSitioForm] = useState({
+    nombre: '',
+    direccion: '',
+    tipo: 'Punto de Encuentro',
+    congregacionId: '',
+    lat: '',
+    lng: ''
+  });
+
+  // Saving State
+  const [isSaving, setIsSaving] = useState(false);
+
+  // Instance service (memoized or static)
+  const congregacionService = new CongregacionService();
+
+  useEffect(() => {
+    loadData();
+  }, [activeTab]);
+
+  const loadData = async () => {
+    setIsLoading(true);
+    try {
+      if (activeTab === 'congregaciones') {
+        const data = await congregacionService.findAll();
+        setCongregacionesData(data);
+      } else if (activeTab === 'sitios') {
+        const data = await congregacionService.getAllSitios();
+        setSitiosData(data);
+      } else if (activeTab === 'usuarios') {
+        const data = await userService.searchUsers({}, user); // Fetch all users (Global Admin)
+        setUsersData(data);
+      }
+    } catch (error) {
+      console.error('Error loading data:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   // Filtrar usuarios
-  const usuariosFiltrados = usuarios.filter(usuario => {
-    const matchSearch = usuario.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                       usuario.email.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchRole = roleFilter === 'all' || usuario.role === roleFilter;
+  const usuariosFiltrados = usersData.filter(u => {
+    const matchSearch = u.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      u.email.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchRole = roleFilter === 'all' || u.role === roleFilter;
     return matchSearch && matchRole;
   });
 
-  const getRoleIcon = (role: string) => {
-    if (role === 'admin') return <Shield className="w-4 h-4" />;
-    if (role === 'capitan') return <UserCheck className="w-4 h-4" />;
+  const getRoleIcon = (role: UserRole) => {
+    if (role === UserRole.AdminLocal || role === UserRole.AdminGlobal) return <Shield className="w-4 h-4" />;
+    if (role === UserRole.Capitan) return <UserCheck className="w-4 h-4" />;
     return <UserIcon className="w-4 h-4" />;
   };
 
-  const getRoleLabel = (role: string) => {
-    if (role === 'admin') return 'Administrador';
-    if (role === 'capitan') return 'Capitán';
-    return 'Voluntario';
+  const getRoleColor = (role: UserRole) => {
+    if (role === UserRole.AdminLocal || role === UserRole.AdminGlobal) return '#594396';
+    if (role === UserRole.Capitan) return '#2563eb';
+    return '#059669';
   };
 
-  const getRoleColor = (role: string) => {
-    if (role === 'admin') return '#594396';
-    if (role === 'capitan') return '#2563eb';
-    return '#059669';
+  // HANDLERS
+  const handleEditCongregacion = (cong: Congregacion) => {
+    setEditingCongregacion(cong);
+    setCongForm({ nombre: cong.nombre, circuito: cong.circuito || '', ciudad: cong.ciudad || '' });
+    setShowCongregacionModal(true);
+  };
+
+  const handleCreateCongregacion = () => {
+    setEditingCongregacion(null);
+    setCongForm({ nombre: '', circuito: '', ciudad: '' });
+    setShowCongregacionModal(true);
+  };
+
+  const handleSaveCongregacion = async () => {
+    if (!congForm.nombre || !congForm.circuito || !congForm.ciudad) return alert('Todos los campos son obligatorios');
+    setIsSaving(true);
+    try {
+      if (editingCongregacion) {
+        await congregacionService.update(editingCongregacion.id, congForm);
+      } else {
+        await congregacionService.create({ ...congForm, estado: 'NL' });
+      }
+      await loadData();
+      setShowCongregacionModal(false);
+    } catch (error) {
+      console.error(error);
+      alert('Error al guardar congregación');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleEditSitio = (sitio: Sitio) => {
+    setEditingSitio(sitio);
+    setSitioForm({
+      nombre: sitio.nombre,
+      direccion: sitio.direccion || '',
+      tipo: sitio.tipo,
+      congregacionId: sitio.congregacionId,
+      lat: sitio.coordenadas?.lat.toString() || '0',
+      lng: sitio.coordenadas?.lng.toString() || '0'
+    });
+    setShowSitioModal(true);
+  };
+
+  const handleCreateSitio = () => {
+    setEditingSitio(null);
+    setSitioForm({
+      nombre: '',
+      direccion: '',
+      tipo: 'Punto de Encuentro',
+      congregacionId: congregacionesData[0]?.id || '',
+      lat: '0',
+      lng: '0'
+    });
+    setShowSitioModal(true);
+  };
+
+  const handleSaveSitio = async () => {
+    if (!sitioForm.nombre || !sitioForm.direccion || !sitioForm.congregacionId) return alert('Nombre, dirección y congregación son obligatorios');
+    setIsSaving(true);
+    try {
+      const payload: any = {
+        nombre: sitioForm.nombre,
+        direccion: sitioForm.direccion,
+        tipo: sitioForm.tipo,
+        congregacionId: sitioForm.congregacionId,
+        coordenadas: {
+          lat: parseFloat(sitioForm.lat || '0'),
+          lng: parseFloat(sitioForm.lng || '0')
+        }
+      };
+
+      if (editingSitio) {
+        await congregacionService.updateSitio(editingSitio.id, payload);
+      } else {
+        await congregacionService.createSitio(payload);
+      }
+      await loadData();
+      setShowSitioModal(false);
+    } catch (error) {
+      console.error(error);
+      alert('Error al guardar sitio');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleEditUser = (user: User) => {
+    setEditingUser(user);
+    setUserForm({
+      role: user.role,
+      congregacion: user.congregacion || '',
+      status: user.status
+    });
+    setShowUserModal(true);
+  };
+
+  const handleSaveUser = async () => {
+    if (!editingUser) return;
+    setIsSaving(true);
+    try {
+      await userService.update(editingUser.id, userForm);
+      await loadData();
+      setShowUserModal(false);
+    } catch (error) {
+      console.error(error);
+      alert('Error al actualizar usuario');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
@@ -579,20 +681,20 @@ function PanelGlobalView({ user, onLogout }: AjustesScreenProps) {
       <div className="mb-6">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div className="flex items-center gap-3">
-            <div 
+            <div
               className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0"
               style={{ backgroundColor: '#594396' }}
             >
               <Settings className="w-6 h-6 text-white" />
             </div>
             <div>
-              <h1 
+              <h1
                 className="text-xl md:text-2xl font-bold"
                 style={{ color: `rgb(${colors.text.primary})` }}
               >
                 Panel de Supervisión Global
               </h1>
-              <p 
+              <p
                 className="text-xs md:text-sm"
                 style={{ color: `rgb(${colors.text.secondary})` }}
               >
@@ -602,9 +704,9 @@ function PanelGlobalView({ user, onLogout }: AjustesScreenProps) {
           </div>
 
           {/* Badge de Admin Global */}
-          <div 
+          <div
             className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium self-start md:self-center"
-            style={{ 
+            style={{
               backgroundColor: 'rgba(220, 38, 38, 0.1)',
               color: '#dc2626'
             }}
@@ -632,29 +734,16 @@ function PanelGlobalView({ user, onLogout }: AjustesScreenProps) {
             Congregaciones
           </button>
           <button
-            onClick={() => setActiveTab('ubicaciones')}
+            onClick={() => setActiveTab('sitios')}
             className="px-4 py-2.5 rounded-lg text-sm font-medium transition-all flex items-center gap-2 whitespace-nowrap"
             style={{
-              backgroundColor: activeTab === 'ubicaciones' ? '#594396' : `rgb(${colors.bg.secondary})`,
-              color: activeTab === 'ubicaciones' ? 'white' : `rgb(${colors.text.primary})`,
-              border: activeTab === 'ubicaciones' ? 'none' : `1px solid rgb(${colors.ui.border})`
-            }}
-          >
-            <Warehouse className="w-4 h-4" />
-            Bodegas
-          </button>
-          <button
-            onClick={() => setActiveTab('puntos_encuentro')}
-            className="px-4 py-2.5 rounded-lg text-sm font-medium transition-all flex items-center gap-2 whitespace-nowrap"
-            style={{
-              backgroundColor: activeTab === 'puntos_encuentro' ? '#594396' : `rgb(${colors.bg.secondary})`,
-              color: activeTab === 'puntos_encuentro' ? 'white' : `rgb(${colors.text.primary})`,
-              border: activeTab === 'puntos_encuentro' ? 'none' : `1px solid rgb(${colors.ui.border})`
+              backgroundColor: activeTab === 'sitios' ? '#594396' : `rgb(${colors.bg.secondary})`,
+              color: activeTab === 'sitios' ? 'white' : `rgb(${colors.text.primary})`,
+              border: activeTab === 'sitios' ? 'none' : `1px solid rgb(${colors.ui.border})`
             }}
           >
             <Navigation className="w-4 h-4" />
-            <span className="hidden sm:inline">Puntos de Encuentro</span>
-            <span className="sm:hidden">Encuentros</span>
+            Sitios / Puntos
           </button>
           <button
             onClick={() => setActiveTab('usuarios')}
@@ -671,463 +760,164 @@ function PanelGlobalView({ user, onLogout }: AjustesScreenProps) {
         </div>
       </div>
 
-      {/* Contenido según Tab Activo */}
+      {/* Content */}
       <div className="mb-8">
-        {/* TAB: Congregaciones */}
-        {activeTab === 'congregaciones' && (
+
+        {isLoading && (
+          <div className="py-12 flex justify-center">
+            <Loader2 className="w-8 h-8 animate-spin text-[#594396]" />
+          </div>
+        )}
+
+        {!isLoading && activeTab === 'congregaciones' && (
           <div>
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
-              <h2 
-                className="text-lg md:text-xl font-bold flex items-center gap-2"
-                style={{ color: `rgb(${colors.text.primary})` }}
-              >
+              <h2 className="text-lg md:text-xl font-bold flex items-center gap-2" style={{ color: `rgb(${colors.text.primary})` }}>
                 <Building className="w-5 h-5 md:w-6 md:h-6" style={{ color: '#594396' }} />
                 Congregaciones
               </h2>
               <button
-                className="px-4 py-2 rounded-lg font-semibold flex items-center justify-center gap-2 transition-all hover:opacity-90 text-sm"
-                style={{ backgroundColor: '#594396', color: 'white' }}
+                onClick={handleCreateCongregacion}
+                className="px-4 py-2 rounded-lg text-white text-sm font-medium flex items-center gap-2 transition-opacity hover:opacity-90"
+                style={{ backgroundColor: '#594396' }}
               >
                 <Plus className="w-4 h-4" />
-                Agregar Congregación
+                Nueva Congregación
               </button>
             </div>
 
-            {/* Tabla responsive de congregaciones */}
-            <div 
-              className="rounded-xl overflow-hidden"
-              style={{ 
-                backgroundColor: `rgb(${colors.bg.secondary})`,
-                border: `1px solid rgb(${colors.ui.border})`
-              }}
-            >
-              {/* Header de tabla - solo visible en desktop */}
-              <div 
-                className="hidden md:grid grid-cols-3 gap-4 px-4 py-3 text-xs font-semibold"
-                style={{ 
-                  backgroundColor: `rgb(${colors.bg.tertiary})`,
-                  color: `rgb(${colors.text.tertiary})`
-                }}
-              >
-                <div>CONGREGACIÓN</div>
-                <div>CIRCUITO</div>
-                <div className="text-right">ACCIONES</div>
-              </div>
+            <div className="space-y-2">
+              {congregacionesData.map((cong) => (
+                <div key={cong.id} className="p-4 rounded-xl flex justify-between items-center" style={{ backgroundColor: `rgb(${colors.bg.secondary})`, border: `1px solid rgb(${colors.ui.border})` }}>
+                  <div>
+                    <h3 className="font-bold" style={{ color: `rgb(${colors.text.primary})` }}>{cong.nombre}</h3>
+                    <p className="text-sm" style={{ color: `rgb(${colors.text.secondary})` }}>Circuito {cong.circuito}</p>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <div className="text-sm opacity-70 hidden sm:block">{cong.ciudad}</div>
+                    <button
+                      onClick={() => handleEditCongregacion(cong)}
+                      className="p-2 rounded-full hover:bg-black/5"
+                    >
+                      <Edit2 className="w-4 h-4 text-gray-500" />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+            {congregacionesData.length === 0 && <p className="text-center py-8 opacity-50">No hay congregaciones registradas.</p>}
+          </div>
+        )}
 
-              {/* Filas responsive */}
-              {congregaciones.map((cong, index) => (
-                <div 
-                  key={cong.id}
-                  className="px-4 py-4"
-                  style={{ 
-                    borderTop: index > 0 ? `1px solid rgb(${colors.ui.divider})` : 'none'
-                  }}
-                >
-                  {/* Vista Desktop */}
-                  <div className="hidden md:grid grid-cols-3 gap-4 items-center">
-                    <div className="flex items-center gap-3">
-                      <img 
-                        src={jwLogo} 
-                        alt="Kingdom Hall" 
-                        className="w-10 h-10 object-contain flex-shrink-0"
-                      />
-                      <span 
-                        className="font-medium"
-                        style={{ color: `rgb(${colors.text.primary})` }}
-                      >
-                        {cong.nombre}
+        {!isLoading && activeTab === 'sitios' && (
+          <div>
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+              <h2 className="text-lg md:text-xl font-bold flex items-center gap-2" style={{ color: `rgb(${colors.text.primary})` }}>
+                <Navigation className="w-5 h-5 md:w-6 md:h-6" style={{ color: '#594396' }} />
+                Sitios y Puntos
+              </h2>
+              <button
+                onClick={handleCreateSitio}
+                className="px-4 py-2 rounded-lg text-white text-sm font-medium flex items-center gap-2 transition-opacity hover:opacity-90"
+                style={{ backgroundColor: '#594396' }}
+              >
+                <Plus className="w-4 h-4" />
+                Nuevo Sitio
+              </button>
+            </div>
+
+            <div className="grid gap-4 md:grid-cols-2">
+              {sitiosData.map((sitio) => (
+                <div key={sitio.id} className="p-4 rounded-xl relative group" style={{ backgroundColor: `rgb(${colors.bg.secondary})`, border: `1px solid rgb(${colors.ui.border})` }}>
+                  <div className="flex items-start gap-3">
+                    <Navigation className="w-5 h-5 mt-1" style={{ color: '#594396' }} />
+                    <div className="flex-1">
+                      <h3 className="font-bold" style={{ color: `rgb(${colors.text.primary})` }}>{sitio.nombre}</h3>
+                      <p className="text-sm mb-1" style={{ color: `rgb(${colors.text.secondary})` }}>{sitio.direccion}</p>
+                      <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-600 border border-gray-200 uppercase">
+                        {sitio.tipo}
                       </span>
                     </div>
-                    <div 
-                      className="font-semibold"
-                      style={{ color: '#594396' }}
-                    >
-                      Circuito {cong.circuito}
-                    </div>
-                    <div className="flex items-center justify-end gap-2">
-                      <button
-                        className="p-2 rounded-lg hover:opacity-80 transition-opacity"
-                        style={{ backgroundColor: `rgb(${colors.bg.tertiary})` }}
-                      >
-                        <Edit2 className="w-4 h-4" style={{ color: '#594396' }} />
-                      </button>
-                    </div>
                   </div>
-
-                  {/* Vista Mobile */}
-                  <div className="md:hidden flex items-start gap-3">
-                    <img 
-                      src={jwLogo} 
-                      alt="Kingdom Hall" 
-                      className="w-12 h-12 object-contain flex-shrink-0"
-                    />
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-start justify-between gap-2 mb-1">
-                        <span 
-                          className="font-medium"
-                          style={{ color: `rgb(${colors.text.primary})` }}
-                        >
-                          {cong.nombre}
-                        </span>
-                        <button
-                          className="p-1.5 rounded-lg hover:opacity-80 transition-opacity flex-shrink-0"
-                          style={{ backgroundColor: `rgb(${colors.bg.tertiary})` }}
-                        >
-                          <Edit2 className="w-3.5 h-3.5" style={{ color: '#594396' }} />
-                        </button>
-                      </div>
-                      <div 
-                        className="text-sm font-semibold"
-                        style={{ color: '#594396' }}
-                      >
-                        Circuito {cong.circuito}
-                      </div>
-                    </div>
-                  </div>
+                  <button
+                    onClick={() => handleEditSitio(sitio)}
+                    className="absolute top-2 right-2 p-2 rounded-full hover:bg-black/5 opacity-0 group-hover:opacity-100 transition-opacity"
+                  >
+                    <Edit2 className="w-4 h-4 text-gray-500" />
+                  </button>
                 </div>
               ))}
             </div>
-
-            <div 
-              className="mt-2 text-xs flex items-center gap-1"
-              style={{ color: `rgb(${colors.text.tertiary})` }}
-            >
-              <AlertCircle className="w-3 h-3" />
-              Total: {congregaciones.length} congregaciones registradas
-            </div>
+            {sitiosData.length === 0 && <p className="text-center py-8 opacity-50">No hay sitios registrados.</p>}
           </div>
         )}
 
-        {/* TAB: Bodegas */}
-        {activeTab === 'ubicaciones' && (
+        {!isLoading && activeTab === 'usuarios' && (
           <div>
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
-              <h2 
-                className="text-lg md:text-xl font-bold flex items-center gap-2"
-                style={{ color: `rgb(${colors.text.primary})` }}
-              >
-                <Warehouse className="w-5 h-5 md:w-6 md:h-6" style={{ color: '#594396' }} />
-                Bodegas
-              </h2>
-              <button
-                className="px-4 py-2 rounded-lg font-semibold flex items-center justify-center gap-2 transition-all hover:opacity-90 text-sm"
-                style={{ backgroundColor: '#594396', color: 'white' }}
-              >
-                <Plus className="w-4 h-4" />
-                Agregar Bodega
-              </button>
-            </div>
-
-            <div className="grid gap-4 md:grid-cols-2">
-              {ubicaciones.map((ubicacion) => (
-                <div
-                  key={ubicacion.id}
-                  className="rounded-xl p-4"
-                  style={{ 
-                    backgroundColor: `rgb(${colors.bg.secondary})`,
-                    border: `1px solid rgb(${colors.ui.border})`
-                  }}
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="flex items-start gap-3 flex-1 min-w-0">
-                      <div 
-                        className="w-12 h-12 rounded-lg flex items-center justify-center flex-shrink-0"
-                        style={{ backgroundColor: 'rgba(89, 67, 150, 0.1)' }}
-                      >
-                        <Warehouse className="w-6 h-6" style={{ color: '#594396' }} />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <h3 
-                          className="font-semibold mb-1"
-                          style={{ color: `rgb(${colors.text.primary})` }}
-                        >
-                          {ubicacion.nombre}
-                        </h3>
-                        <p 
-                          className="text-sm"
-                          style={{ color: `rgb(${colors.text.secondary})` }}
-                        >
-                          {ubicacion.direccion}
-                        </p>
-                      </div>
-                    </div>
-                    <button
-                      className="p-2 rounded-lg hover:opacity-80 transition-opacity flex-shrink-0"
-                      style={{ backgroundColor: `rgb(${colors.bg.tertiary})` }}
-                    >
-                      <Edit2 className="w-4 h-4" style={{ color: '#594396' }} />
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* TAB: Puntos de Encuentro */}
-        {activeTab === 'puntos_encuentro' && (
-          <div>
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
-              <h2 
-                className="text-lg md:text-xl font-bold flex items-center gap-2"
-                style={{ color: `rgb(${colors.text.primary})` }}
-              >
-                <Navigation className="w-5 h-5 md:w-6 md:h-6" style={{ color: '#594396' }} />
-                Puntos de Encuentro
-              </h2>
-              <button
-                className="px-4 py-2 rounded-lg font-semibold flex items-center justify-center gap-2 transition-all hover:opacity-90 text-sm"
-                style={{ backgroundColor: '#594396', color: 'white' }}
-              >
-                <Plus className="w-4 h-4" />
-                Agregar Punto
-              </button>
-            </div>
-
-            <div className="grid gap-4 md:grid-cols-2">
-              {puntosEncuentro.map((punto) => (
-                <div
-                  key={punto.id}
-                  className="rounded-xl p-4"
-                  style={{ 
-                    backgroundColor: `rgb(${colors.bg.secondary})`,
-                    border: `1px solid rgb(${colors.ui.border})`
-                  }}
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="flex items-start gap-3 flex-1 min-w-0">
-                      <div 
-                        className="w-12 h-12 rounded-lg flex items-center justify-center flex-shrink-0"
-                        style={{ backgroundColor: 'rgba(89, 67, 150, 0.1)' }}
-                      >
-                        <Navigation className="w-6 h-6" style={{ color: '#594396' }} />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <h3 
-                          className="font-semibold mb-1"
-                          style={{ color: `rgb(${colors.text.primary})` }}
-                        >
-                          {punto.nombre}
-                        </h3>
-                        <p 
-                          className="text-sm mb-2"
-                          style={{ color: `rgb(${colors.text.secondary})` }}
-                        >
-                          {punto.direccion}
-                        </p>
-                        {punto.foto ? (
-                          <div 
-                            className="text-xs flex items-center gap-1"
-                            style={{ color: '#10b981' }}
-                          >
-                            <Check className="w-3 h-3" />
-                            Foto disponible
-                          </div>
-                        ) : (
-                          <div 
-                            className="text-xs flex items-center gap-1"
-                            style={{ color: `rgb(${colors.text.tertiary})` }}
-                          >
-                            <AlertCircle className="w-3 h-3" />
-                            Sin foto
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                    <button
-                      className="p-2 rounded-lg hover:opacity-80 transition-opacity flex-shrink-0"
-                      style={{ backgroundColor: `rgb(${colors.bg.tertiary})` }}
-                    >
-                      <Edit2 className="w-4 h-4" style={{ color: '#594396' }} />
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* TAB: Usuarios */}
-        {activeTab === 'usuarios' && (
-          <div>
-            <h2 
-              className="text-lg md:text-xl font-bold flex items-center gap-2 mb-4"
-              style={{ color: `rgb(${colors.text.primary})` }}
-            >
+            <h2 className="text-lg md:text-xl font-bold flex items-center gap-2 mb-4" style={{ color: `rgb(${colors.text.primary})` }}>
               <Users className="w-5 h-5 md:w-6 md:h-6" style={{ color: '#594396' }} />
-              Usuarios del Sistema
+              Usuarios ({usuariosFiltrados.length})
             </h2>
 
-            {/* Filtros por Rol */}
+            {/* Role Filter */}
             <div className="flex flex-wrap gap-2 mb-4">
-              <button
-                onClick={() => setRoleFilter('all')}
-                className="px-3 py-2 rounded-lg text-sm font-medium transition-all"
-                style={{
-                  backgroundColor: roleFilter === 'all' ? '#594396' : `rgb(${colors.bg.secondary})`,
-                  color: roleFilter === 'all' ? 'white' : `rgb(${colors.text.primary})`,
-                  border: roleFilter === 'all' ? 'none' : `1px solid rgb(${colors.ui.border})`
-                }}
-              >
-                Todos ({usuarios.length})
-              </button>
-              <button
-                onClick={() => setRoleFilter('admin')}
-                className="px-3 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-1"
-                style={{
-                  backgroundColor: roleFilter === 'admin' ? '#594396' : `rgb(${colors.bg.secondary})`,
-                  color: roleFilter === 'admin' ? 'white' : `rgb(${colors.text.primary})`,
-                  border: roleFilter === 'admin' ? 'none' : `1px solid rgb(${colors.ui.border})`
-                }}
-              >
-                <Shield className="w-3.5 h-3.5" />
-                Admins ({usuarios.filter(u => u.role === 'admin').length})
-              </button>
-              <button
-                onClick={() => setRoleFilter('capitan')}
-                className="px-3 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-1"
-                style={{
-                  backgroundColor: roleFilter === 'capitan' ? '#2563eb' : `rgb(${colors.bg.secondary})`,
-                  color: roleFilter === 'capitan' ? 'white' : `rgb(${colors.text.primary})`,
-                  border: roleFilter === 'capitan' ? 'none' : `1px solid rgb(${colors.ui.border})`
-                }}
-              >
-                <UserCheck className="w-3.5 h-3.5" />
-                Capitanes ({usuarios.filter(u => u.role === 'capitan').length})
-              </button>
-              <button
-                onClick={() => setRoleFilter('voluntario')}
-                className="px-3 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-1"
-                style={{
-                  backgroundColor: roleFilter === 'voluntario' ? '#059669' : `rgb(${colors.bg.secondary})`,
-                  color: roleFilter === 'voluntario' ? 'white' : `rgb(${colors.text.primary})`,
-                  border: roleFilter === 'voluntario' ? 'none' : `1px solid rgb(${colors.ui.border})`
-                }}
-              >
-                <UserIcon className="w-3.5 h-3.5" />
-                Voluntarios ({usuarios.filter(u => u.role === 'voluntario').length})
-              </button>
+              <button onClick={() => setRoleFilter('all')} className={`px-3 py-1.5 rounded-lg text-sm border ${roleFilter === 'all' ? 'bg-[#594396] text-white border-transparent' : 'border-gray-200'}`}>Todos</button>
+              <button onClick={() => setRoleFilter(UserRole.AdminLocal)} className={`px-3 py-1.5 rounded-lg text-sm border ${roleFilter === UserRole.AdminLocal ? 'bg-[#594396] text-white border-transparent' : 'border-gray-200'}`}>Admins</button>
+              <button onClick={() => setRoleFilter(UserRole.Capitan)} className={`px-3 py-1.5 rounded-lg text-sm border ${roleFilter === UserRole.Capitan ? 'bg-[#594396] text-white border-transparent' : 'border-gray-200'}`}>Capitanes</button>
+              <button onClick={() => setRoleFilter(UserRole.Voluntario)} className={`px-3 py-1.5 rounded-lg text-sm border ${roleFilter === UserRole.Voluntario ? 'bg-[#594396] text-white border-transparent' : 'border-gray-200'}`}>Voluntarios</button>
             </div>
 
-            {/* Barra de búsqueda */}
+            {/* Search */}
             <div className="mb-4 relative">
-              <Search 
-                className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4" 
-                style={{ color: `rgb(${colors.text.tertiary})` }}
-              />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
               <input
                 type="text"
-                placeholder="Buscar hermano por nombre o correo..."
+                placeholder="Buscar..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-3 rounded-lg outline-none transition-all text-sm"
-                style={{
-                  backgroundColor: `rgb(${colors.bg.secondary})`,
-                  border: `1px solid rgb(${colors.ui.border})`,
-                  color: `rgb(${colors.text.primary})`
-                }}
+                className="w-full pl-10 pr-4 py-2 rounded-lg border outline-none text-sm"
+                style={{ backgroundColor: `rgb(${colors.bg.secondary})`, borderColor: `rgb(${colors.ui.border})`, color: `rgb(${colors.text.primary})` }}
               />
             </div>
 
-            {/* Lista de usuarios filtrados */}
             <div className="space-y-3">
-              {usuariosFiltrados.map((usuario) => (
-                <div
-                  key={usuario.id}
-                  className="rounded-xl p-4"
-                  style={{ 
-                    backgroundColor: `rgb(${colors.bg.secondary})`,
-                    border: `1px solid rgb(${colors.ui.border})`,
-                    opacity: usuario.activo ? 1 : 0.6
-                  }}
-                >
+              {usuariosFiltrados.map((u) => (
+                <div key={u.id} className="p-4 rounded-xl" style={{ backgroundColor: `rgb(${colors.bg.secondary})`, border: `1px solid rgb(${colors.ui.border})`, opacity: u.status === UserStatus.Rechazado ? 0.5 : 1 }}>
                   <div className="flex items-start gap-3">
-                    {/* Avatar con color según rol */}
-                    <div 
-                      className="w-12 h-12 rounded-full flex items-center justify-center text-white font-semibold flex-shrink-0"
-                      style={{ backgroundColor: getRoleColor(usuario.role) }}
+                    <div className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold" style={{ backgroundColor: getRoleColor(u.role) }}>
+                      {u.nombre.charAt(0)}
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="font-bold text-sm" style={{ color: `rgb(${colors.text.primary})` }}>{u.nombre}</h3>
+                      <div className="text-xs text-gray-500">{u.email}</div>
+                      <div className="flex items-center gap-2 mt-1">
+                        <span className="text-xs px-2 py-0.5 rounded-full flex items-center gap-1" style={{ backgroundColor: `${getRoleColor(u.role)}20`, color: getRoleColor(u.role) }}>
+                          {getRoleIcon(u.role)}
+                          {getRoleLabel(u.role)}
+                        </span>
+                        <span className="text-xs text-gray-400">{getCongregacionNombre(u.congregacion)}</span>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => handleEditUser(u)}
+                      className="p-2 rounded-full hover:bg-black/5"
                     >
-                      {usuario.nombre.charAt(0)}
-                    </div>
-
-                    {/* Datos del usuario */}
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-start justify-between gap-2 mb-2">
-                        <div className="flex-1 min-w-0">
-                          <div className="flex flex-wrap items-center gap-2 mb-1">
-                            <span 
-                              className="font-semibold"
-                              style={{ color: `rgb(${colors.text.primary})` }}
-                            >
-                              {usuario.nombre}
-                            </span>
-                            {/* Badge de rol */}
-                            <div 
-                              className="px-2 py-0.5 rounded-full text-xs font-medium flex items-center gap-1"
-                              style={{ 
-                                backgroundColor: `${getRoleColor(usuario.role)}20`,
-                                color: getRoleColor(usuario.role)
-                              }}
-                            >
-                              {getRoleIcon(usuario.role)}
-                              <span className="hidden sm:inline">{getRoleLabel(usuario.role)}</span>
-                            </div>
-                          </div>
-                        </div>
-                        <button
-                          className="p-1.5 rounded-lg hover:opacity-80 transition-opacity flex-shrink-0"
-                          style={{ backgroundColor: `rgb(${colors.bg.tertiary})` }}
-                        >
-                          <Edit2 className="w-3.5 h-3.5" style={{ color: '#594396' }} />
-                        </button>
-                      </div>
-
-                      <div className="space-y-1 text-sm">
-                        <div 
-                          className="flex items-center gap-1.5"
-                          style={{ color: `rgb(${colors.text.secondary})` }}
-                        >
-                          <Mail className="w-3 h-3 flex-shrink-0" />
-                          <span className="truncate">{usuario.email}</span>
-                        </div>
-                        <div 
-                          className="flex items-center gap-1.5"
-                          style={{ color: `rgb(${colors.text.secondary})` }}
-                        >
-                          <Phone className="w-3 h-3 flex-shrink-0" />
-                          {usuario.telefono}
-                        </div>
-                        <div 
-                          className="flex items-center gap-1.5"
-                          style={{ color: '#594396' }}
-                        >
-                          <Church className="w-3 h-3 flex-shrink-0" />
-                          {getCongregacionNombre(usuario.congregacion)}
-                        </div>
-                      </div>
-                    </div>
+                      <Edit2 className="w-4 h-4 text-gray-500" />
+                    </button>
                   </div>
                 </div>
               ))}
             </div>
-
-            {usuariosFiltrados.length === 0 && (
-              <div className="text-center py-12">
-                <Users className="w-12 h-12 mx-auto mb-3" style={{ color: `rgb(${colors.text.tertiary})` }} />
-                <p style={{ color: `rgb(${colors.text.secondary})` }}>
-                  No se encontraron hermanos con los filtros actuales
-                </p>
-              </div>
-            )}
           </div>
         )}
+
       </div>
 
       {/* Botón de Cerrar Sesión */}
       <button
         onClick={onLogout}
         className="w-full py-4 rounded-xl font-semibold flex items-center justify-center gap-2 transition-all hover:opacity-90"
-        style={{ 
+        style={{
           backgroundColor: 'rgba(239, 68, 68, 0.1)',
           color: '#ef4444',
           border: '1px solid rgba(239, 68, 68, 0.2)'
@@ -1136,6 +926,208 @@ function PanelGlobalView({ user, onLogout }: AjustesScreenProps) {
         <LogOut className="w-5 h-5" />
         Cerrar Sesión
       </button>
+
+      {/* Congragación Modal */}
+      {showCongregacionModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white w-full max-w-md rounded-2xl p-6 shadow-2xl animate-in zoom-in-95 duration-200">
+            <h3 className="text-xl font-bold mb-4 text-[#594396]">{editingCongregacion ? 'Editar Congregación' : 'Nueva Congregación'}</h3>
+            <div className="space-y-3">
+              <div>
+                <label className="text-xs font-medium text-gray-500 mb-1 block">Nombre</label>
+                <input
+                  className="w-full p-2.5 border rounded-lg focus:ring-2 focus:ring-[#594396] focus:border-transparent outline-none transition-all"
+                  placeholder="Ej. Central"
+                  value={congForm.nombre}
+                  onChange={e => setCongForm({ ...congForm, nombre: e.target.value })}
+                />
+              </div>
+              <div>
+                <label className="text-xs font-medium text-gray-500 mb-1 block">Circuito</label>
+                <input
+                  className="w-full p-2.5 border rounded-lg focus:ring-2 focus:ring-[#594396] focus:border-transparent outline-none transition-all"
+                  placeholder="Ej. 01"
+                  value={congForm.circuito}
+                  onChange={e => setCongForm({ ...congForm, circuito: e.target.value })}
+                />
+              </div>
+              <div>
+                <label className="text-xs font-medium text-gray-500 mb-1 block">Ciudad</label>
+                <input
+                  className="w-full p-2.5 border rounded-lg focus:ring-2 focus:ring-[#594396] focus:border-transparent outline-none transition-all"
+                  placeholder="Ej. Monterrey"
+                  value={congForm.ciudad}
+                  onChange={e => setCongForm({ ...congForm, ciudad: e.target.value })}
+                />
+              </div>
+            </div>
+            <div className="flex gap-2 mt-6">
+              <button onClick={() => setShowCongregacionModal(false)} className="flex-1 p-2.5 border border-gray-300 rounded-lg text-gray-700 font-medium hover:bg-gray-50 transition-colors">Cancelar</button>
+              <button
+                onClick={handleSaveCongregacion}
+                disabled={isSaving}
+                className="flex-1 p-2.5 bg-[#594396] text-white rounded-lg font-medium hover:opacity-90 transition-opacity disabled:opacity-50 flex justify-center items-center"
+              >
+                {isSaving ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Guardar'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Sitio Modal */}
+      {showSitioModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white w-full max-w-md rounded-2xl p-6 shadow-2xl animate-in zoom-in-95 duration-200">
+            <h3 className="text-xl font-bold mb-4 text-[#594396]">{editingSitio ? 'Editar Sitio' : 'Nuevo Sitio'}</h3>
+            <div className="space-y-3">
+              <div>
+                <label className="text-xs font-medium text-gray-500 mb-1 block">Nombre</label>
+                <input
+                  className="w-full p-2.5 border rounded-lg focus:ring-2 focus:ring-[#594396] focus:border-transparent outline-none transition-all"
+                  placeholder="Nombre del Sitio"
+                  value={sitioForm.nombre}
+                  onChange={e => setSitioForm({ ...sitioForm, nombre: e.target.value })}
+                />
+              </div>
+              <div>
+                <label className="text-xs font-medium text-gray-500 mb-1 block">Dirección</label>
+                <input
+                  className="w-full p-2.5 border rounded-lg focus:ring-2 focus:ring-[#594396] focus:border-transparent outline-none transition-all"
+                  placeholder="Dirección completa"
+                  value={sitioForm.direccion}
+                  onChange={e => setSitioForm({ ...sitioForm, direccion: e.target.value })}
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-medium text-gray-500 mb-1 block">Tipo</label>
+                  <select
+                    className="w-full p-2.5 border rounded-lg focus:ring-2 focus:ring-[#594396] focus:border-transparent outline-none transition-all bg-white"
+                    value={sitioForm.tipo}
+                    onChange={e => setSitioForm({ ...sitioForm, tipo: e.target.value })}
+                  >
+                    <option value="Punto de Encuentro">Punto de Encuentro</option>
+                    <option value="Cartelera">Cartelera</option>
+                    <option value="Negocio">Negocio</option>
+                    <option value="Casa Particular">Casa Particular</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-gray-500 mb-1 block">Congregación</label>
+                  <select
+                    className="w-full p-2.5 border rounded-lg focus:ring-2 focus:ring-[#594396] focus:border-transparent outline-none transition-all bg-white"
+                    value={sitioForm.congregacionId}
+                    onChange={e => setSitioForm({ ...sitioForm, congregacionId: e.target.value })}
+                  >
+                    <option value="">Selecciona...</option>
+                    {congregacionesData.map(c => (
+                      <option key={c.id} value={c.id}>{c.nombre}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-medium text-gray-500 mb-1 block">Latitud</label>
+                  <input
+                    className="w-full p-2.5 border rounded-lg focus:ring-2 focus:ring-[#594396] focus:border-transparent outline-none transition-all"
+                    placeholder="0.0000"
+                    type="number"
+                    step="any"
+                    value={sitioForm.lat}
+                    onChange={e => setSitioForm({ ...sitioForm, lat: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-gray-500 mb-1 block">Longitud</label>
+                  <input
+                    className="w-full p-2.5 border rounded-lg focus:ring-2 focus:ring-[#594396] focus:border-transparent outline-none transition-all"
+                    placeholder="0.0000"
+                    type="number"
+                    step="any"
+                    value={sitioForm.lng}
+                    onChange={e => setSitioForm({ ...sitioForm, lng: e.target.value })}
+                  />
+                </div>
+              </div>
+            </div>
+            <div className="flex gap-2 mt-6">
+              <button onClick={() => setShowSitioModal(false)} className="flex-1 p-2.5 border border-gray-300 rounded-lg text-gray-700 font-medium hover:bg-gray-50 transition-colors">Cancelar</button>
+              <button
+                onClick={handleSaveSitio}
+                disabled={isSaving}
+                className="flex-1 p-2.5 bg-[#594396] text-white rounded-lg font-medium hover:opacity-90 transition-opacity disabled:opacity-50 flex justify-center items-center"
+              >
+                {isSaving ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Guardar'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* User Modal */}
+      {showUserModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white w-full max-w-md rounded-2xl p-6 shadow-2xl animate-in zoom-in-95 duration-200">
+            <h3 className="text-xl font-bold mb-4 text-[#594396]">Editar Usuario</h3>
+            {editingUser && (
+              <p className="text-sm text-gray-500 mb-4">Editando a: <span className="font-semibold">{editingUser.nombre}</span></p>
+            )}
+            <div className="space-y-3">
+              <div>
+                <label className="text-xs font-medium text-gray-500 mb-1 block">Rol</label>
+                <select
+                  className="w-full p-2.5 border rounded-lg focus:ring-2 focus:ring-[#594396] focus:border-transparent outline-none transition-all bg-white"
+                  value={userForm.role}
+                  onChange={e => setUserForm({ ...userForm, role: e.target.value as UserRole })}
+                >
+                  <option value={UserRole.Voluntario}>Voluntario</option>
+                  <option value={UserRole.Capitan}>Capitán</option>
+                  <option value={UserRole.AdminLocal}>Admin Local</option>
+                </select>
+              </div>
+              <div>
+                <label className="text-xs font-medium text-gray-500 mb-1 block">Congregación</label>
+                <select
+                  className="w-full p-2.5 border rounded-lg focus:ring-2 focus:ring-[#594396] focus:border-transparent outline-none transition-all bg-white"
+                  value={userForm.congregacion}
+                  onChange={e => setUserForm({ ...userForm, congregacion: e.target.value })}
+                >
+                  <option value="">Sin Asignación</option>
+                  {congregacionesData.map(c => (
+                    <option key={c.id} value={c.id}>{c.nombre}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="text-xs font-medium text-gray-500 mb-1 block">Estado</label>
+                <select
+                  className="w-full p-2.5 border rounded-lg focus:ring-2 focus:ring-[#594396] focus:border-transparent outline-none transition-all bg-white"
+                  value={userForm.status}
+                  onChange={e => setUserForm({ ...userForm, status: e.target.value as UserStatus })}
+                >
+                  <option value={UserStatus.Pendiente}>Pendiente</option>
+                  <option value={UserStatus.Aprobado}>Aprobado</option>
+                  <option value={UserStatus.Rechazado}>Rechazado</option>
+                </select>
+              </div>
+            </div>
+            <div className="flex gap-2 mt-6">
+              <button onClick={() => setShowUserModal(false)} className="flex-1 p-2.5 border border-gray-300 rounded-lg text-gray-700 font-medium hover:bg-gray-50 transition-colors">Cancelar</button>
+              <button
+                onClick={handleSaveUser}
+                disabled={isSaving}
+                className="flex-1 p-2.5 bg-[#594396] text-white rounded-lg font-medium hover:opacity-90 transition-opacity disabled:opacity-50 flex justify-center items-center"
+              >
+                {isSaving ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Guardar'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -1152,7 +1144,7 @@ export function AjustesScreen({ user, onLogout }: AjustesScreenProps) {
   const showGlobalPanel = isGlobalAdmin(user.role);
 
   return (
-    <div 
+    <div
       className="min-h-screen pb-24 theme-transition"
       style={{ backgroundColor: `rgb(${colors.bg.primary})` }}
     >

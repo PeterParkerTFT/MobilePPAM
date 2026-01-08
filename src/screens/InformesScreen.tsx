@@ -1,43 +1,28 @@
-import React, { useState } from 'react';
-import { User } from '../types/models';
+import React, { useState, useEffect } from 'react';
+import { User, ReporteTurno } from '../types/models';
 import { HeaderWithTheme } from '../components/HeaderWithTheme';
 import { useThemeColors } from '../hooks/useThemeColors';
 import { EventBadge } from '../components/EventBadge';
 import { Clock, MapPin, CheckCircle, Edit3, Send, Heart, Sparkles, Calendar, X, AlertCircle, Users } from 'lucide-react';
+import { TurnoService } from '../services/TurnoService';
+import { UserRole } from '../types/enums';
+
+const turnoService = new TurnoService();
 
 interface InformesScreenProps {
   user: User;
   onLogout: () => void;
 }
 
-interface Informe {
-  id: string;
-  turnoId: string;
-  voluntarioId: string;
-  voluntarioNombre: string;
-  tipo: 'expositores' | 'guias' | 'escuelas' | 'editoriales' | 'encuestas' | 'bodega';
-  titulo: string;
-  fecha: string;
-  horaInicio: string;
-  horaFin: string;
-  ubicacion: string;
-  capitanId: string;
-  capitanNombre: string;
-  status: 'pendiente' | 'realizado';
-  asistio?: boolean;
-  comentarios?: string;
-  experiencia?: string;
-  fechaReporte?: string;
-}
-
 export function InformesScreen({ user, onLogout }: InformesScreenProps) {
   const [showMenu, setShowMenu] = useState(false);
   const [activeTab, setActiveTab] = useState<'pendientes' | 'realizados' | 'experiencias'>('pendientes');
-  const [selectedInforme, setSelectedInforme] = useState<Informe | null>(null);
+  const [selectedInforme, setSelectedInforme] = useState<ReporteTurno | null>(null);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showExperienciaModal, setShowExperienciaModal] = useState(false);
   const [showDetailModal, setShowDetailModal] = useState(false);
-  
+  const [loading, setLoading] = useState(true);
+
   const [formData, setFormData] = useState({
     asistio: true,
     comentarios: '',
@@ -46,160 +31,27 @@ export function InformesScreen({ user, onLogout }: InformesScreenProps) {
 
   const colors = useThemeColors();
 
-  // Mock data de informes (en producción vendrían de Supabase)
-  const [informes, setInformes] = useState<Informe[]>([
-    // Informes del usuario actual (voluntario)
-    {
-      id: 'inf1',
-      turnoId: 't1',
-      voluntarioId: user.id,
-      voluntarioNombre: user.nombre,
-      tipo: 'guias',
-      titulo: 'Miércoles 3 de diciembre de 2025',
-      fecha: '2025-12-03',
-      horaInicio: '16:00',
-      horaFin: '21:00',
-      ubicacion: 'Museo Bíblico - Sede Central',
-      capitanId: 'cap1',
-      capitanNombre: 'Hermano Martínez',
-      status: 'pendiente'
-    },
-    {
-      id: 'inf2',
-      turnoId: 't7',
-      voluntarioId: user.id,
-      voluntarioNombre: user.nombre,
-      tipo: 'escuelas',
-      titulo: 'Viernes 5 de diciembre de 2025',
-      fecha: '2025-12-05',
-      horaInicio: '18:00',
-      horaFin: '21:00',
-      ubicacion: 'Salón del Reino - Congregación Norte',
-      capitanId: 'cap1',
-      capitanNombre: 'Hermano Martínez',
-      status: 'pendiente'
-    },
-    {
-      id: 'inf3',
-      turnoId: 't13',
-      voluntarioId: user.id,
-      voluntarioNombre: user.nombre,
-      tipo: 'expositores',
-      titulo: 'Sábado 30 de noviembre de 2025',
-      fecha: '2025-11-30',
-      horaInicio: '09:00',
-      horaFin: '14:00',
-      ubicacion: 'Salón de Asambleas',
-      capitanId: 'cap2',
-      capitanNombre: 'Hermana González',
-      status: 'realizado',
-      asistio: true,
-      comentarios: 'Fue una experiencia maravillosa. Pude conversar con varios visitantes interesados.',
-      experiencia: 'Una hermana me preguntó sobre la Trinidad y pudimos tener una conversación muy edificante usando la Biblia.',
-      fechaReporte: '2025-12-01'
-    },
-    {
-      id: 'inf4',
-      turnoId: 't14',
-      voluntarioId: user.id,
-      voluntarioNombre: user.nombre,
-      tipo: 'bodega',
-      titulo: 'Jueves 28 de noviembre de 2025',
-      fecha: '2025-11-28',
-      horaInicio: '16:00',
-      horaFin: '19:00',
-      ubicacion: 'Bodega Central - Betel',
-      capitanId: 'cap3',
-      capitanNombre: 'Hermano Pérez',
-      status: 'realizado',
-      asistio: true,
-      comentarios: 'Organizamos 200 cajas de literatura. Todo el equipo trabajó muy bien.',
-      fechaReporte: '2025-11-29'
-    },
-    // Informes de otros voluntarios (para admins/capitanes)
-    {
-      id: 'inf5',
-      turnoId: 't2',
-      voluntarioId: 'vol2',
-      voluntarioNombre: 'María Fernández',
-      tipo: 'guias',
-      titulo: 'Jueves 4 de diciembre de 2025',
-      fecha: '2025-12-04',
-      horaInicio: '14:00',
-      horaFin: '18:00',
-      ubicacion: 'Museo Bíblico - Sede Central',
-      capitanId: 'cap1',
-      capitanNombre: 'Hermano Martínez',
-      status: 'pendiente'
-    },
-    {
-      id: 'inf6',
-      turnoId: 't3',
-      voluntarioId: 'vol3',
-      voluntarioNombre: 'Carlos López',
-      tipo: 'expositores',
-      titulo: 'Viernes 6 de diciembre de 2025',
-      fecha: '2025-12-06',
-      horaInicio: '10:00',
-      horaFin: '13:00',
-      ubicacion: 'Salón de Asambleas',
-      capitanId: 'cap1',
-      capitanNombre: 'Hermano Martínez',
-      status: 'realizado',
-      asistio: true,
-      comentarios: 'Excelente día de servicio. Atendimos a muchas personas.',
-      experiencia: 'Un joven me dijo que había estado orando para encontrar respuestas. Le mostramos el video "¿Por qué estudiar la Biblia?" Se emocionó mucho y aceptó un estudio.',
-      fechaReporte: '2025-12-06'
-    },
-    {
-      id: 'inf7',
-      turnoId: 't4',
-      voluntarioId: 'vol4',
-      voluntarioNombre: 'Ana Rodríguez',
-      tipo: 'escuelas',
-      titulo: 'Sábado 7 de diciembre de 2025',
-      fecha: '2025-12-07',
-      horaInicio: '09:00',
-      horaFin: '12:00',
-      ubicacion: 'Salón del Reino - Congregación Sur',
-      capitanId: 'cap2',
-      capitanNombre: 'Hermana González',
-      status: 'pendiente'
-    },
-    {
-      id: 'inf8',
-      turnoId: 't5',
-      voluntarioId: 'vol5',
-      voluntarioNombre: 'Pedro Sánchez',
-      tipo: 'editoriales',
-      titulo: 'Domingo 1 de diciembre de 2025',
-      fecha: '2025-12-01',
-      horaInicio: '08:00',
-      horaFin: '12:00',
-      ubicacion: 'Plaza Central',
-      capitanId: 'cap1',
-      capitanNombre: 'Hermano Martínez',
-      status: 'realizado',
-      asistio: true,
-      comentarios: 'Muy buen clima para el servicio. Distribuimos 150 revistas.',
-      experiencia: 'Una señora mayor me agradeció por la revista sobre el duelo. Me contó que había perdido a su esposo hace poco. Pudimos consolarla con Apocalipsis 21:4.',
-      fechaReporte: '2025-12-01'
-    }
-  ]);
+  const [informes, setInformes] = useState<ReporteTurno[]>([]);
 
-  // Filtrar informes según el rol
-  const informesFiltrados = informes.filter(inf => {
-    if (user.role === 'voluntario') {
-      // Voluntarios solo ven SUS informes
-      return inf.voluntarioId === user.id;
-    } else if (user.role === 'capitan') {
-      // Capitanes ven informes de voluntarios de SUS turnos
-      return inf.capitanId === user.id;
-    } else {
-      // Admins ven TODOS los informes
-      return true;
+  useEffect(() => {
+    loadReports();
+  }, [user.id]);
+
+  const loadReports = async () => {
+    try {
+      setLoading(true);
+      const data = await turnoService.getReportesUsuario(user.id);
+      setInformes(data);
+    } catch (error) {
+      console.error('Error loading reports:', error);
+    } finally {
+      setLoading(false);
     }
-  });
+  };
+  // Filtrar informes según el rol
+  const informesFiltrados = informes; // Por ahora, la API ya filtra por usuario. 
+  // TODO: Si es admin/capitan, turnoService.getReportesUsuario podría necesitar params extra o usar otro endpoint.
+  // Asumiremos que por ahora solo vemos MIS informes.
 
   const informesPendientes = informesFiltrados.filter(i => i.status === 'pendiente');
   const informesRealizados = informesFiltrados.filter(i => i.status === 'realizado');
@@ -212,28 +64,30 @@ export function InformesScreen({ user, onLogout }: InformesScreenProps) {
     return `${days[date.getDay()]} ${date.getDate()} de ${months[date.getMonth()]}`;
   };
 
-  const handleEnviarInforme = () => {
+  const handleEnviarInforme = async () => {
     if (selectedInforme) {
-      setInformes(prev => prev.map(inf => 
-        inf.id === selectedInforme.id 
-          ? { 
-              ...inf, 
-              status: 'realizado' as const,
-              asistio: formData.asistio,
-              comentarios: formData.comentarios,
-              experiencia: formData.experiencia,
-              fechaReporte: new Date().toISOString().split('T')[0]
-            } 
-          : inf
-      ));
-      setShowEditModal(false);
-      setSelectedInforme(null);
-      setFormData({ asistio: true, comentarios: '', experiencia: '' });
-      setActiveTab('realizados');
+      const updatedReport: Partial<ReporteTurno> = {
+        id: selectedInforme.id,
+        asistio: formData.asistio,
+        comentarios: formData.comentarios,
+        experiencia: formData.experiencia
+      };
+
+      const success = await turnoService.submitReport(updatedReport);
+
+      if (success) {
+        await loadReports(); // Reload to update status
+        setShowEditModal(false);
+        setSelectedInforme(null);
+        setFormData({ asistio: true, comentarios: '', experiencia: '' });
+        setActiveTab('realizados');
+      } else {
+        alert('Error al enviar informe');
+      }
     }
   };
 
-  const handleEditarInforme = (informe: Informe) => {
+  const handleEditarInforme = (informe: ReporteTurno) => {
     setSelectedInforme(informe);
     setFormData({
       asistio: informe.asistio ?? true,
@@ -243,7 +97,7 @@ export function InformesScreen({ user, onLogout }: InformesScreenProps) {
     setShowEditModal(true);
   };
 
-  const handleAbrirInforme = (informe: Informe) => {
+  const handleAbrirInforme = (informe: ReporteTurno) => {
     setSelectedInforme(informe);
     setFormData({
       asistio: true,
@@ -253,26 +107,30 @@ export function InformesScreen({ user, onLogout }: InformesScreenProps) {
     setShowEditModal(true);
   };
 
-  const handleVerDetalle = (informe: Informe) => {
+  const handleVerDetalle = (informe: ReporteTurno) => {
     setSelectedInforme(informe);
     setShowDetailModal(true);
   };
 
   const handleCompartirExperiencia = () => {
-    console.log('Experiencia compartida:', formData.experiencia);
+    // Solo abre el modal, el envío real podría usar un endpoint específico o el mismo submitReport si es vinculado a un turno.
+    // Asumiremos que experiencia se vincula a un turno existente?
+    // En la UI original, esto era "create new experience"? 
+    // Por simplicidad, alertamos.
+    alert('Función Experiencia Independiente no implementada en Backend aún. Por favor incluya experiencias en sus informes de turno.');
     setShowExperienciaModal(false);
     setFormData({ asistio: true, comentarios: '', experiencia: '' });
   };
 
   // Determinar el título según el rol
   const getTitle = () => {
-    if (user.role === 'voluntario') return 'Mis Informes';
-    if (user.role === 'capitan') return 'Informes de Mi Grupo';
-    return 'Todos los Informes';
+    if (user.role === UserRole.Voluntario) return 'Mis Informes';
+    // if (user.role === 'capitan') return 'Informes de Mi Grupo'; // Requeriría fetch especial
+    return 'Mis Informes'; // Fallback
   };
 
   return (
-    <div 
+    <div
       className="min-h-screen pb-24 theme-transition"
       style={{ backgroundColor: `rgb(${colors.bg.primary})` }}
     >
@@ -287,52 +145,52 @@ export function InformesScreen({ user, onLogout }: InformesScreenProps) {
 
       <div className="px-4 py-4">
         {/* Estadísticas */}
-        <div 
+        <div
           className="rounded-xl p-4 mb-4 shadow-md theme-transition"
-          style={{ 
+          style={{
             backgroundColor: `rgb(${colors.bg.secondary})`,
             border: `1px solid rgb(${colors.ui.border})`
           }}
         >
           <div className="grid grid-cols-3 gap-3">
             <div className="text-center">
-              <div 
+              <div
                 className="text-2xl font-bold mb-1"
                 style={{ color: '#f59e0b' }}
               >
                 {informesPendientes.length}
               </div>
-              <div 
+              <div
                 className="text-xs"
                 style={{ color: `rgb(${colors.text.secondary})` }}
               >
                 Pendientes
               </div>
             </div>
-            
+
             <div className="text-center">
-              <div 
+              <div
                 className="text-2xl font-bold mb-1"
                 style={{ color: '#10b981' }}
               >
                 {informesRealizados.length}
               </div>
-              <div 
+              <div
                 className="text-xs"
                 style={{ color: `rgb(${colors.text.secondary})` }}
               >
                 Completados
               </div>
             </div>
-            
+
             <div className="text-center">
-              <div 
+              <div
                 className="text-2xl font-bold mb-1"
                 style={{ color: `rgb(${colors.interactive.primary})` }}
               >
                 {experiencias.length}
               </div>
-              <div 
+              <div
                 className="text-xs"
                 style={{ color: `rgb(${colors.text.secondary})` }}
               >
@@ -348,32 +206,32 @@ export function InformesScreen({ user, onLogout }: InformesScreenProps) {
             onClick={() => setActiveTab('pendientes')}
             className="flex-1 py-2.5 px-3 rounded-lg font-medium text-xs transition-all"
             style={{
-              backgroundColor: activeTab === 'pendientes' 
-                ? `rgb(${colors.interactive.primary})` 
+              backgroundColor: activeTab === 'pendientes'
+                ? `rgb(${colors.interactive.primary})`
                 : `rgb(${colors.bg.tertiary})`,
-              color: activeTab === 'pendientes' 
-                ? '#ffffff' 
+              color: activeTab === 'pendientes'
+                ? '#ffffff'
                 : `rgb(${colors.text.primary})`,
-              border: activeTab === 'pendientes' 
-                ? `2px solid rgb(${colors.interactive.primary})` 
+              border: activeTab === 'pendientes'
+                ? `2px solid rgb(${colors.interactive.primary})`
                 : `1px solid rgb(${colors.ui.border})`
             }}
           >
             Pendientes ({informesPendientes.length})
           </button>
-          
+
           <button
             onClick={() => setActiveTab('realizados')}
             className="flex-1 py-2.5 px-3 rounded-lg font-medium text-xs transition-all"
             style={{
-              backgroundColor: activeTab === 'realizados' 
-                ? `rgb(${colors.interactive.primary})` 
+              backgroundColor: activeTab === 'realizados'
+                ? `rgb(${colors.interactive.primary})`
                 : `rgb(${colors.bg.tertiary})`,
-              color: activeTab === 'realizados' 
-                ? '#ffffff' 
+              color: activeTab === 'realizados'
+                ? '#ffffff'
                 : `rgb(${colors.text.primary})`,
-              border: activeTab === 'realizados' 
-                ? `2px solid rgb(${colors.interactive.primary})` 
+              border: activeTab === 'realizados'
+                ? `2px solid rgb(${colors.interactive.primary})`
                 : `1px solid rgb(${colors.ui.border})`
             }}
           >
@@ -384,14 +242,14 @@ export function InformesScreen({ user, onLogout }: InformesScreenProps) {
             onClick={() => setActiveTab('experiencias')}
             className="flex-1 py-2.5 px-3 rounded-lg font-medium text-xs transition-all flex items-center justify-center gap-1"
             style={{
-              backgroundColor: activeTab === 'experiencias' 
-                ? `rgb(${colors.interactive.primary})` 
+              backgroundColor: activeTab === 'experiencias'
+                ? `rgb(${colors.interactive.primary})`
                 : `rgb(${colors.bg.tertiary})`,
-              color: activeTab === 'experiencias' 
-                ? '#ffffff' 
+              color: activeTab === 'experiencias'
+                ? '#ffffff'
                 : `rgb(${colors.text.primary})`,
-              border: activeTab === 'experiencias' 
-                ? `2px solid rgb(${colors.interactive.primary})` 
+              border: activeTab === 'experiencias'
+                ? `2px solid rgb(${colors.interactive.primary})`
                 : `1px solid rgb(${colors.ui.border})`
             }}
           >
@@ -409,44 +267,44 @@ export function InformesScreen({ user, onLogout }: InformesScreenProps) {
                   <div
                     key={informe.id}
                     onClick={() => {
-                      if (user.role === 'voluntario') {
+                      if (user.role === UserRole.Voluntario) {
                         handleAbrirInforme(informe);
                       } else {
                         handleVerDetalle(informe);
                       }
                     }}
                     className="rounded-xl p-4 cursor-pointer hover:opacity-90 transition-all shadow-md theme-transition"
-                    style={{ 
+                    style={{
                       backgroundColor: `rgb(${colors.bg.secondary})`,
                       border: '2px solid rgba(251, 191, 36, 0.3)'
                     }}
                   >
                     {/* Header con badge y fecha */}
                     <div className="flex items-start justify-between mb-3">
-                      <EventBadge tipo={informe.tipo} size="md" />
+                      <EventBadge tipo={informe.tipo} variant="default" />
                       <span className="text-xs px-2.5 py-1 rounded-full bg-orange-100 text-orange-600 font-semibold">
                         PENDIENTE
                       </span>
                     </div>
 
                     {/* Voluntario (solo para admins/capitanes) */}
-                    {user.role !== 'voluntario' && (
+                    {user.role !== UserRole.Voluntario && (
                       <div className="flex items-center gap-2 mb-2">
-                        <Users 
-                          className="w-4 h-4" 
+                        <Users
+                          className="w-4 h-4"
                           style={{ color: `rgb(${colors.interactive.primary})` }}
                         />
-                        <span 
+                        <span
                           className="text-sm font-semibold"
                           style={{ color: `rgb(${colors.text.primary})` }}
                         >
-                          {informe.voluntarioNombre}
+                          {informe.voluntarioNombre || 'Voluntario'}
                         </span>
                       </div>
                     )}
 
                     {/* Fecha */}
-                    <div 
+                    <div
                       className="text-sm font-semibold mb-2"
                       style={{ color: `rgb(${colors.text.primary})` }}
                     >
@@ -455,11 +313,11 @@ export function InformesScreen({ user, onLogout }: InformesScreenProps) {
 
                     {/* Horario */}
                     <div className="flex items-center gap-2 mb-2">
-                      <Clock 
-                        className="w-4 h-4 flex-shrink-0" 
+                      <Clock
+                        className="w-4 h-4 flex-shrink-0"
                         style={{ color: `rgb(${colors.text.tertiary})` }}
                       />
-                      <span 
+                      <span
                         className="text-xs"
                         style={{ color: `rgb(${colors.text.secondary})` }}
                       >
@@ -469,11 +327,11 @@ export function InformesScreen({ user, onLogout }: InformesScreenProps) {
 
                     {/* Ubicación */}
                     <div className="flex items-start gap-2 mb-3">
-                      <MapPin 
-                        className="w-4 h-4 flex-shrink-0 mt-0.5" 
+                      <MapPin
+                        className="w-4 h-4 flex-shrink-0 mt-0.5"
                         style={{ color: `rgb(${colors.text.tertiary})` }}
                       />
-                      <span 
+                      <span
                         className="text-xs"
                         style={{ color: `rgb(${colors.text.secondary})` }}
                       >
@@ -482,8 +340,8 @@ export function InformesScreen({ user, onLogout }: InformesScreenProps) {
                     </div>
 
                     {/* Capitán (solo para voluntarios) */}
-                    {user.role === 'voluntario' && (
-                      <div 
+                    {user.role === UserRole.Voluntario && (
+                      <div
                         className="text-xs mb-3"
                         style={{ color: `rgb(${colors.text.tertiary})` }}
                       >
@@ -492,10 +350,10 @@ export function InformesScreen({ user, onLogout }: InformesScreenProps) {
                     )}
 
                     {/* Botón */}
-                    {user.role === 'voluntario' ? (
+                    {user.role === UserRole.Voluntario ? (
                       <button
                         className="w-full py-2.5 rounded-lg font-medium text-sm transition-all flex items-center justify-center gap-2"
-                        style={{ 
+                        style={{
                           backgroundColor: '#f59e0b',
                           color: '#ffffff'
                         }}
@@ -504,7 +362,7 @@ export function InformesScreen({ user, onLogout }: InformesScreenProps) {
                         Enviar Informe
                       </button>
                     ) : (
-                      <div 
+                      <div
                         className="flex items-center gap-2 text-xs"
                         style={{ color: '#f59e0b' }}
                       >
@@ -518,18 +376,18 @@ export function InformesScreen({ user, onLogout }: InformesScreenProps) {
             ) : (
               <div className="text-center py-12">
                 <div className="text-6xl mb-3">✅</div>
-                <h3 
+                <h3
                   className="font-semibold mb-2"
                   style={{ color: `rgb(${colors.text.primary})` }}
                 >
                   ¡Todo al día!
                 </h3>
-                <p 
+                <p
                   className="text-sm"
                   style={{ color: `rgb(${colors.text.secondary})` }}
                 >
-                  {user.role === 'voluntario' 
-                    ? 'No tienes informes pendientes' 
+                  {user.role === UserRole.Voluntario
+                    ? 'No tienes informes pendientes'
                     : 'Todos los voluntarios han enviado sus informes'}
                 </p>
               </div>
@@ -546,21 +404,21 @@ export function InformesScreen({ user, onLogout }: InformesScreenProps) {
                   <div
                     key={informe.id}
                     onClick={() => {
-                      if (user.role === 'voluntario' && informe.voluntarioId === user.id) {
+                      if (user.role === UserRole.Voluntario && informe.voluntarioId === user.id) {
                         handleEditarInforme(informe);
                       } else {
                         handleVerDetalle(informe);
                       }
                     }}
                     className="rounded-xl p-4 shadow-md theme-transition cursor-pointer hover:opacity-90"
-                    style={{ 
+                    style={{
                       backgroundColor: `rgb(${colors.bg.secondary})`,
                       border: '1px solid rgba(16, 185, 129, 0.3)'
                     }}
                   >
                     {/* Header con badge y estado */}
                     <div className="flex items-start justify-between mb-3">
-                      <EventBadge tipo={informe.tipo} size="md" />
+                      <EventBadge tipo={informe.tipo} variant="default" />
                       <div className="flex items-center gap-1 text-xs text-green-600 font-semibold">
                         <CheckCircle className="w-4 h-4" />
                         COMPLETADO
@@ -568,23 +426,23 @@ export function InformesScreen({ user, onLogout }: InformesScreenProps) {
                     </div>
 
                     {/* Voluntario (solo para admins/capitanes) */}
-                    {user.role !== 'voluntario' && (
+                    {user.role !== UserRole.Voluntario && (
                       <div className="flex items-center gap-2 mb-2">
-                        <Users 
-                          className="w-4 h-4" 
+                        <Users
+                          className="w-4 h-4"
                           style={{ color: `rgb(${colors.interactive.primary})` }}
                         />
-                        <span 
+                        <span
                           className="text-sm font-semibold"
                           style={{ color: `rgb(${colors.text.primary})` }}
                         >
-                          {informe.voluntarioNombre}
+                          {informe.voluntarioNombre || 'Voluntario'}
                         </span>
                       </div>
                     )}
 
                     {/* Fecha */}
-                    <div 
+                    <div
                       className="text-sm font-semibold mb-2"
                       style={{ color: `rgb(${colors.text.primary})` }}
                     >
@@ -593,11 +451,11 @@ export function InformesScreen({ user, onLogout }: InformesScreenProps) {
 
                     {/* Horario */}
                     <div className="flex items-center gap-2 mb-2">
-                      <Clock 
-                        className="w-4 h-4 flex-shrink-0" 
+                      <Clock
+                        className="w-4 h-4 flex-shrink-0"
                         style={{ color: `rgb(${colors.text.tertiary})` }}
                       />
-                      <span 
+                      <span
                         className="text-xs"
                         style={{ color: `rgb(${colors.text.secondary})` }}
                       >
@@ -607,11 +465,11 @@ export function InformesScreen({ user, onLogout }: InformesScreenProps) {
 
                     {/* Ubicación */}
                     <div className="flex items-start gap-2 mb-3">
-                      <MapPin 
-                        className="w-4 h-4 flex-shrink-0 mt-0.5" 
+                      <MapPin
+                        className="w-4 h-4 flex-shrink-0 mt-0.5"
                         style={{ color: `rgb(${colors.text.tertiary})` }}
                       />
-                      <span 
+                      <span
                         className="text-xs"
                         style={{ color: `rgb(${colors.text.secondary})` }}
                       >
@@ -621,9 +479,9 @@ export function InformesScreen({ user, onLogout }: InformesScreenProps) {
 
                     {/* Comentarios */}
                     {informe.comentarios && (
-                      <div 
+                      <div
                         className="text-xs mb-3 p-3 rounded-lg"
-                        style={{ 
+                        style={{
                           backgroundColor: `rgb(${colors.bg.tertiary})`,
                           color: `rgb(${colors.text.primary})`
                         }}
@@ -635,19 +493,19 @@ export function InformesScreen({ user, onLogout }: InformesScreenProps) {
 
                     {/* Experiencia */}
                     {informe.experiencia && (
-                      <div 
+                      <div
                         className="text-xs mb-3 p-3 rounded-lg flex items-start gap-2"
-                        style={{ 
+                        style={{
                           backgroundColor: 'rgba(107, 87, 184, 0.1)',
                           borderLeft: `3px solid rgb(${colors.interactive.primary})`
                         }}
                       >
-                        <Sparkles 
+                        <Sparkles
                           className="w-4 h-4 flex-shrink-0 mt-0.5"
                           style={{ color: `rgb(${colors.interactive.primary})` }}
                         />
                         <div>
-                          <div 
+                          <div
                             className="font-semibold mb-1"
                             style={{ color: `rgb(${colors.interactive.primary})` }}
                           >
@@ -661,7 +519,7 @@ export function InformesScreen({ user, onLogout }: InformesScreenProps) {
                     )}
 
                     {/* Fecha de reporte */}
-                    <div 
+                    <div
                       className="text-xs mb-3"
                       style={{ color: `rgb(${colors.text.tertiary})` }}
                     >
@@ -669,10 +527,10 @@ export function InformesScreen({ user, onLogout }: InformesScreenProps) {
                     </div>
 
                     {/* Botón Editar (solo para voluntarios en sus propios informes) */}
-                    {user.role === 'voluntario' && informe.voluntarioId === user.id && (
+                    {user.role === UserRole.Voluntario && informe.voluntarioId === user.id && (
                       <button
                         className="w-full py-2.5 rounded-lg font-medium text-sm transition-all flex items-center justify-center gap-2 border"
-                        style={{ 
+                        style={{
                           backgroundColor: 'transparent',
                           borderColor: `rgb(${colors.interactive.primary})`,
                           color: `rgb(${colors.interactive.primary})`
@@ -688,18 +546,18 @@ export function InformesScreen({ user, onLogout }: InformesScreenProps) {
             ) : (
               <div className="text-center py-12">
                 <div className="text-6xl mb-3">📝</div>
-                <h3 
+                <h3
                   className="font-semibold mb-2"
                   style={{ color: `rgb(${colors.text.primary})` }}
                 >
                   Aún no hay informes completados
                 </h3>
-                <p 
+                <p
                   className="text-sm"
                   style={{ color: `rgb(${colors.text.secondary})` }}
                 >
-                  {user.role === 'voluntario' 
-                    ? 'Tus informes completados aparecerán aquí' 
+                  {user.role === UserRole.Voluntario
+                    ? 'Tus informes completados aparecerán aquí'
                     : 'Los informes completados de los voluntarios aparecerán aquí'}
                 </p>
               </div>
@@ -711,11 +569,11 @@ export function InformesScreen({ user, onLogout }: InformesScreenProps) {
         {activeTab === 'experiencias' && (
           <>
             {/* Botón para compartir nueva experiencia (solo voluntarios) */}
-            {user.role === 'voluntario' && (
+            {user.role === UserRole.Voluntario && (
               <button
                 onClick={() => setShowExperienciaModal(true)}
                 className="w-full py-4 rounded-xl font-medium text-sm transition-all flex items-center justify-center gap-2 mb-6 shadow-md"
-                style={{ 
+                style={{
                   backgroundColor: `rgb(${colors.interactive.primary})`,
                   color: '#ffffff'
                 }}
@@ -731,29 +589,29 @@ export function InformesScreen({ user, onLogout }: InformesScreenProps) {
                 <div
                   key={informe.id}
                   className="rounded-xl p-4 shadow-md theme-transition"
-                  style={{ 
+                  style={{
                     backgroundColor: `rgb(${colors.bg.secondary})`,
                     border: `1px solid rgb(${colors.ui.border})`
                   }}
                 >
                   {/* Header */}
                   <div className="flex items-start gap-3 mb-3">
-                    <div 
+                    <div
                       className="w-10 h-10 rounded-full flex items-center justify-center text-white text-sm font-semibold flex-shrink-0"
                       style={{ backgroundColor: `rgb(${colors.interactive.primary})` }}
                     >
-                      {informe.voluntarioNombre.charAt(0)}
+                      {informe.voluntarioNombre?.charAt(0) || '?'}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <div 
+                      <div
                         className="font-semibold text-sm mb-0.5"
                         style={{ color: `rgb(${colors.text.primary})` }}
                       >
                         {informe.voluntarioNombre}
                       </div>
                       <div className="flex items-center gap-2 flex-wrap">
-                        <EventBadge tipo={informe.tipo} size="sm" />
-                        <span 
+                        <EventBadge tipo={informe.tipo} variant="compact" />
+                        <span
                           className="text-xs"
                           style={{ color: `rgb(${colors.text.tertiary})` }}
                         >
@@ -764,7 +622,7 @@ export function InformesScreen({ user, onLogout }: InformesScreenProps) {
                   </div>
 
                   {/* Experiencia */}
-                  <div 
+                  <div
                     className="text-sm leading-relaxed mb-3"
                     style={{ color: `rgb(${colors.text.primary})` }}
                   >
@@ -773,7 +631,7 @@ export function InformesScreen({ user, onLogout }: InformesScreenProps) {
 
                   {/* Footer */}
                   <div className="flex items-center gap-4">
-                    <button 
+                    <button
                       className="flex items-center gap-1 text-xs"
                       style={{ color: `rgb(${colors.text.tertiary})` }}
                     >
@@ -787,20 +645,20 @@ export function InformesScreen({ user, onLogout }: InformesScreenProps) {
               {experiencias.length === 0 && (
                 <div className="text-center py-12">
                   <div className="text-6xl mb-3">💝</div>
-                  <h3 
+                  <h3
                     className="font-semibold mb-2"
                     style={{ color: `rgb(${colors.text.primary})` }}
                   >
-                    {user.role === 'voluntario' 
-                      ? 'Comparte tus experiencias' 
+                    {user.role === UserRole.Voluntario
+                      ? 'Comparte tus experiencias'
                       : 'Aún no hay experiencias compartidas'}
                   </h3>
-                  <p 
+                  <p
                     className="text-sm mb-4"
                     style={{ color: `rgb(${colors.text.secondary})` }}
                   >
-                    {user.role === 'voluntario' 
-                      ? 'Edifica a otros hermanos contando lo que Jehová ha hecho por ti' 
+                    {user.role === UserRole.Voluntario
+                      ? 'Edifica a otros hermanos contando lo que Jehová ha hecho por ti'
                       : 'Cuando los voluntarios compartan sus experiencias, aparecerán aquí'}
                   </p>
                 </div>
@@ -811,22 +669,22 @@ export function InformesScreen({ user, onLogout }: InformesScreenProps) {
       </div>
 
       {/* MODAL: Enviar/Editar Informe (solo voluntarios) */}
-      {showEditModal && selectedInforme && user.role === 'voluntario' && (
+      {showEditModal && selectedInforme && user.role === UserRole.Voluntario && (
         <div className="fixed inset-0 bg-black/60 flex items-end justify-center z-50 p-0">
-          <div 
+          <div
             className="w-full max-w-[428px] rounded-t-3xl shadow-2xl max-h-[85vh] overflow-y-auto theme-transition"
             style={{ backgroundColor: `rgb(${colors.bg.primary})` }}
           >
             {/* Header del Modal */}
-            <div 
+            <div
               className="sticky top-0 z-10 px-4 py-4 border-b theme-transition"
-              style={{ 
+              style={{
                 backgroundColor: `rgb(${colors.bg.primary})`,
                 borderColor: `rgb(${colors.ui.divider})`
               }}
             >
               <div className="flex items-center justify-between mb-2">
-                <h3 
+                <h3
                   className="font-semibold text-lg"
                   style={{ color: `rgb(${colors.text.primary})` }}
                 >
@@ -843,28 +701,28 @@ export function InformesScreen({ user, onLogout }: InformesScreenProps) {
                   <X className="w-5 h-5" style={{ color: `rgb(${colors.text.primary})` }} />
                 </button>
               </div>
-              <EventBadge tipo={selectedInforme.tipo} size="md" />
+              <EventBadge tipo={selectedInforme.tipo} variant="default" />
             </div>
 
             <div className="p-4 space-y-4">
               {/* Info del Turno */}
-              <div 
+              <div
                 className="rounded-xl p-3"
                 style={{ backgroundColor: `rgb(${colors.bg.secondary})` }}
               >
-                <div 
+                <div
                   className="text-sm font-semibold mb-2"
                   style={{ color: `rgb(${colors.text.primary})` }}
                 >
                   {formatDate(selectedInforme.fecha)}
                 </div>
-                <div 
+                <div
                   className="text-xs mb-1"
                   style={{ color: `rgb(${colors.text.secondary})` }}
                 >
                   {selectedInforme.horaInicio} - {selectedInforme.horaFin}
                 </div>
-                <div 
+                <div
                   className="text-xs"
                   style={{ color: `rgb(${colors.text.tertiary})` }}
                 >
@@ -874,7 +732,7 @@ export function InformesScreen({ user, onLogout }: InformesScreenProps) {
 
               {/* ¿Asististe? */}
               <div>
-                <label 
+                <label
                   className="block text-sm font-semibold mb-2"
                   style={{ color: `rgb(${colors.text.primary})` }}
                 >
@@ -885,14 +743,14 @@ export function InformesScreen({ user, onLogout }: InformesScreenProps) {
                     onClick={() => setFormData({ ...formData, asistio: true })}
                     className="flex-1 py-3 rounded-lg font-medium text-sm transition-all"
                     style={{
-                      backgroundColor: formData.asistio 
-                        ? '#10b981' 
+                      backgroundColor: formData.asistio
+                        ? '#10b981'
                         : `rgb(${colors.bg.tertiary})`,
-                      color: formData.asistio 
-                        ? '#ffffff' 
+                      color: formData.asistio
+                        ? '#ffffff'
                         : `rgb(${colors.text.primary})`,
-                      border: formData.asistio 
-                        ? '2px solid #10b981' 
+                      border: formData.asistio
+                        ? '2px solid #10b981'
                         : `1px solid rgb(${colors.ui.border})`
                     }}
                   >
@@ -902,14 +760,14 @@ export function InformesScreen({ user, onLogout }: InformesScreenProps) {
                     onClick={() => setFormData({ ...formData, asistio: false })}
                     className="flex-1 py-3 rounded-lg font-medium text-sm transition-all"
                     style={{
-                      backgroundColor: !formData.asistio 
-                        ? '#ef4444' 
+                      backgroundColor: !formData.asistio
+                        ? '#ef4444'
                         : `rgb(${colors.bg.tertiary})`,
-                      color: !formData.asistio 
-                        ? '#ffffff' 
+                      color: !formData.asistio
+                        ? '#ffffff'
                         : `rgb(${colors.text.primary})`,
-                      border: !formData.asistio 
-                        ? '2px solid #ef4444' 
+                      border: !formData.asistio
+                        ? '2px solid #ef4444'
                         : `1px solid rgb(${colors.ui.border})`
                     }}
                   >
@@ -920,7 +778,7 @@ export function InformesScreen({ user, onLogout }: InformesScreenProps) {
 
               {/* Comentarios */}
               <div>
-                <label 
+                <label
                   className="block text-sm font-semibold mb-2"
                   style={{ color: `rgb(${colors.text.primary})` }}
                 >
@@ -942,7 +800,7 @@ export function InformesScreen({ user, onLogout }: InformesScreenProps) {
 
               {/* Experiencia */}
               <div>
-                <label 
+                <label
                   className="block text-sm font-semibold mb-2 flex items-center gap-2"
                   style={{ color: `rgb(${colors.text.primary})` }}
                 >
@@ -961,7 +819,7 @@ export function InformesScreen({ user, onLogout }: InformesScreenProps) {
                     minHeight: '120px'
                   }}
                 />
-                <p 
+                <p
                   className="text-xs mt-2"
                   style={{ color: `rgb(${colors.text.tertiary})` }}
                 >
@@ -999,21 +857,21 @@ export function InformesScreen({ user, onLogout }: InformesScreenProps) {
       )}
 
       {/* MODAL: Ver Detalle (admins/capitanes) */}
-      {showDetailModal && selectedInforme && user.role !== 'voluntario' && (
+      {showDetailModal && selectedInforme && user.role !== UserRole.Voluntario && (
         <div className="fixed inset-0 bg-black/60 flex items-end justify-center z-50 p-0">
-          <div 
+          <div
             className="w-full max-w-[428px] rounded-t-3xl shadow-2xl max-h-[85vh] overflow-y-auto theme-transition"
             style={{ backgroundColor: `rgb(${colors.bg.primary})` }}
           >
-            <div 
+            <div
               className="sticky top-0 z-10 px-4 py-4 border-b theme-transition"
-              style={{ 
+              style={{
                 backgroundColor: `rgb(${colors.bg.primary})`,
                 borderColor: `rgb(${colors.ui.divider})`
               }}
             >
               <div className="flex items-center justify-between mb-2">
-                <h3 
+                <h3
                   className="font-semibold text-lg"
                   style={{ color: `rgb(${colors.text.primary})` }}
                 >
@@ -1035,41 +893,41 @@ export function InformesScreen({ user, onLogout }: InformesScreenProps) {
             <div className="p-4 space-y-4">
               {/* Voluntario */}
               <div className="flex items-center gap-3">
-                <div 
+                <div
                   className="w-12 h-12 rounded-full flex items-center justify-center text-white text-lg font-semibold"
                   style={{ backgroundColor: `rgb(${colors.interactive.primary})` }}
                 >
-                  {selectedInforme.voluntarioNombre.charAt(0)}
+                  {selectedInforme.voluntarioNombre?.charAt(0) || '?'}
                 </div>
                 <div>
-                  <div 
+                  <div
                     className="font-semibold"
                     style={{ color: `rgb(${colors.text.primary})` }}
                   >
                     {selectedInforme.voluntarioNombre}
                   </div>
-                  <EventBadge tipo={selectedInforme.tipo} size="sm" />
+                  <EventBadge tipo={selectedInforme.tipo} variant="compact" />
                 </div>
               </div>
 
               {/* Info del Turno */}
-              <div 
+              <div
                 className="rounded-xl p-3"
                 style={{ backgroundColor: `rgb(${colors.bg.secondary})` }}
               >
-                <div 
+                <div
                   className="text-sm font-semibold mb-2"
                   style={{ color: `rgb(${colors.text.primary})` }}
                 >
                   {formatDate(selectedInforme.fecha)}
                 </div>
-                <div 
+                <div
                   className="text-xs mb-1"
                   style={{ color: `rgb(${colors.text.secondary})` }}
                 >
                   {selectedInforme.horaInicio} - {selectedInforme.horaFin}
                 </div>
-                <div 
+                <div
                   className="text-xs"
                   style={{ color: `rgb(${colors.text.tertiary})` }}
                 >
@@ -1080,15 +938,15 @@ export function InformesScreen({ user, onLogout }: InformesScreenProps) {
               {selectedInforme.status === 'realizado' ? (
                 <>
                   {/* Asistencia */}
-                  <div 
+                  <div
                     className="p-3 rounded-lg"
-                    style={{ 
-                      backgroundColor: selectedInforme.asistio 
-                        ? 'rgba(16, 185, 129, 0.1)' 
+                    style={{
+                      backgroundColor: selectedInforme.asistio
+                        ? 'rgba(16, 185, 129, 0.1)'
                         : 'rgba(239, 68, 68, 0.1)'
                     }}
                   >
-                    <div 
+                    <div
                       className="text-sm font-semibold"
                       style={{ color: selectedInforme.asistio ? '#10b981' : '#ef4444' }}
                     >
@@ -1099,15 +957,15 @@ export function InformesScreen({ user, onLogout }: InformesScreenProps) {
                   {/* Comentarios */}
                   {selectedInforme.comentarios && (
                     <div>
-                      <div 
+                      <div
                         className="text-sm font-semibold mb-2"
                         style={{ color: `rgb(${colors.text.primary})` }}
                       >
                         Comentarios:
                       </div>
-                      <div 
+                      <div
                         className="p-3 rounded-lg text-sm"
-                        style={{ 
+                        style={{
                           backgroundColor: `rgb(${colors.bg.secondary})`,
                           color: `rgb(${colors.text.primary})`
                         }}
@@ -1120,16 +978,16 @@ export function InformesScreen({ user, onLogout }: InformesScreenProps) {
                   {/* Experiencia */}
                   {selectedInforme.experiencia && (
                     <div>
-                      <div 
+                      <div
                         className="text-sm font-semibold mb-2 flex items-center gap-2"
                         style={{ color: `rgb(${colors.interactive.primary})` }}
                       >
                         <Sparkles className="w-4 h-4" />
                         Experiencia:
                       </div>
-                      <div 
+                      <div
                         className="p-3 rounded-lg text-sm"
-                        style={{ 
+                        style={{
                           backgroundColor: 'rgba(107, 87, 184, 0.1)',
                           color: `rgb(${colors.text.primary})`,
                           borderLeft: `3px solid rgb(${colors.interactive.primary})`
@@ -1141,7 +999,7 @@ export function InformesScreen({ user, onLogout }: InformesScreenProps) {
                   )}
 
                   {/* Fecha de reporte */}
-                  <div 
+                  <div
                     className="text-xs"
                     style={{ color: `rgb(${colors.text.tertiary})` }}
                   >
@@ -1149,9 +1007,9 @@ export function InformesScreen({ user, onLogout }: InformesScreenProps) {
                   </div>
                 </>
               ) : (
-                <div 
+                <div
                   className="p-4 rounded-lg flex items-start gap-3"
-                  style={{ 
+                  style={{
                     backgroundColor: 'rgba(251, 191, 36, 0.1)',
                     border: '1px solid rgba(251, 191, 36, 0.3)'
                   }}
@@ -1174,7 +1032,7 @@ export function InformesScreen({ user, onLogout }: InformesScreenProps) {
                   setSelectedInforme(null);
                 }}
                 className="w-full py-3 rounded-lg font-medium text-sm transition-all"
-                style={{ 
+                style={{
                   backgroundColor: `rgb(${colors.interactive.primary})`,
                   color: '#ffffff'
                 }}
