@@ -21,8 +21,8 @@ export enum UserRole {
  */
 export enum UserStatus {
   Pendiente = 'PENDIENTE',
-  Aprobado = 'APROBADO',
-  Rechazado = 'RECHAZADO',
+  Aprobado = 'ACTIVO',
+  Rechazado = 'INACTIVO',
 }
 
 /**
