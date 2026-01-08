@@ -81,9 +81,11 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
       resetToSplit();
       setViewState('login');
 
-    } catch (error) {
+    } catch (error: any) {
       console.error('Registration error:', error);
-      alert('Error al registrar usuario: ' + (error instanceof Error ? error.message : 'Unknown error'));
+      // Supabase errors are often objects with a message property, but not Error instances
+      const errorMessage = error?.message || (typeof error === 'string' ? error : 'Unknown error');
+      alert('Error al registrar usuario: ' + errorMessage);
     }
   };
 
