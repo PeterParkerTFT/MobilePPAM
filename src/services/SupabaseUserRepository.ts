@@ -8,7 +8,7 @@ export class SupabaseUserRepository implements IUserRepository {
         if (!supabase) throw new Error('Supabase no está configurado');
 
         const { data, error } = await supabase
-            .from('usuarios')
+            .from('users')
             .select('*')
             .eq('email', email)
             .maybeSingle();
@@ -46,7 +46,7 @@ export class SupabaseUserRepository implements IUserRepository {
         if (!supabase) throw new Error('Supabase no está configurado');
 
         const { data, error } = await supabase
-            .from('usuarios')
+            .from('users')
             .select('*')
             .eq('id', id)
             .single();
@@ -64,7 +64,7 @@ export class SupabaseUserRepository implements IUserRepository {
         if (!supabase) throw new Error('Supabase no está configurado');
 
         const { data, error } = await supabase
-            .from('usuarios')
+            .from('users')
             .select('*');
 
         if (error) {
@@ -78,7 +78,7 @@ export class SupabaseUserRepository implements IUserRepository {
     async search(query: { role?: UserRole; congregacion?: string; status?: UserStatus }): Promise<User[]> {
         if (!supabase) throw new Error('Supabase no está configurado');
 
-        let dbQuery = supabase.from('usuarios').select('*');
+        let dbQuery = supabase.from('users').select('*');
 
         if (query.role) dbQuery = dbQuery.eq('role', query.role);
         if (query.congregacion) dbQuery = dbQuery.eq('congregacion', query.congregacion);
@@ -113,33 +113,27 @@ export class SupabaseUserRepository implements IUserRepository {
 
         if (authError) {
             console.error('Error creando Auth User:', authError);
-            throw authError;
+            throw authError; // This will now be caught by LoginScreen and message shown
         }
 
         if (!authData.user) throw new Error('No se pudo crear el usuario');
 
-        // 2. Insert into public.usuarios
-        // Note: If using triggers, this might be duplicate. But if no triggers, we need this.
-        // We will attempt insert, if duplicate key constraint (from trigger), we ignore or fetch.
-        // Given we are not sure about triggers, we try to insert.
-
+        // 2. Insert into public.users
         const newUserProfile = {
             id: authData.user.id,
             ...user,
-            // Ensure status/role are mapped correctly
             congregacion: user.congregacion,
             congregacion_nombre: user.congregacionNombre
         };
 
         const { data: dbData, error: dbError } = await supabase
-            .from('usuarios')
-            .upsert(newUserProfile) // Upsert in case trigger already created it
+            .from('users')
+            .upsert(newUserProfile)
             .select()
             .single();
 
         if (dbError) {
             console.error('Error creando perfil de usuario:', dbError);
-            // Try to delete auth user if profile creation fails? (Rollback logic omitted for simplicity)
             throw dbError;
         }
 
@@ -157,7 +151,7 @@ export class SupabaseUserRepository implements IUserRepository {
         }
 
         const { data, error } = await supabase
-            .from('usuarios')
+            .from('users')
             .update(dbUpdates)
             .eq('id', id)
             .select()
@@ -172,14 +166,10 @@ export class SupabaseUserRepository implements IUserRepository {
     }
 
     async delete(id: string): Promise<boolean> {
-        // Deleting from public.usuarios might be enough, or delete from auth.users (requires service role key usually)
-        // Standard user cannot delete from auth.users easily without admin function.
-        // We will just mark as inactive or delete from logic.
-
         console.warn('Delete not fully implemented for Auth Users. Only removing profile.');
 
         const { error } = await supabase
-            .from('usuarios')
+            .from('users')
             .delete()
             .eq('id', id);
 
