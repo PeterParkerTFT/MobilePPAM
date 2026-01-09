@@ -69,11 +69,18 @@ export class TurnoService {
             // BD guarda: 'lunes', 'martes', etc. (toLocaleDateString suele dar minúsculas)
             const dayName = dateObj.toLocaleDateString('es-ES', { weekday: 'long' }).toLowerCase();
 
+            // [SENIOR FIX] Robust String Normalization Helper
+            const normalizeString = (str: string) => {
+                return str.toLowerCase()
+                    .normalize("NFD").replace(/[\u0300-\u036f]/g, "") // Remove accents
+                    .trim();
+            };
+
             // Filtrar templates que caen en este día de la semana
             const matchingTemplates = turnosTemplates.filter((t: any) => {
-                const templateDay = (t.dia || '').toLowerCase();
-                // Simple equality check, could make more robust (accent removal) if needed
-                return templateDay === dayName;
+                const templateDay = t.dia || '';
+                // Comparación robusta (ignora mayúsculas y acentos: 'Sábado' == 'sabado')
+                return normalizeString(templateDay) === normalizeString(dayName);
             });
 
             matchingTemplates.forEach((t: any) => {
