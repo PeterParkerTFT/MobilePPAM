@@ -1026,14 +1026,17 @@ function PanelGlobalView({ user, onLogout }: AjustesScreenProps) {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Asignar a Evento (Categoría)
+                    Event Type (Categoría del Sitio)
                   </label>
                   <select
                     value={sitioForm.eventType}
                     onChange={(e) => setSitioForm({ ...sitioForm, eventType: e.target.value })}
                     className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-[#594396] outline-none bg-white"
                   >
-                    <option value="expositores">PPAM (Expositores)</option>
+                    {/* Dynamic options from eventTypes constant */}
+                    <option value="expositores">PPAM (Expositores)</option> {/* Default/Priority */}
+                    <option value="predicacion">Predicación Pública</option>
+                    <option value="carrito">Testigo Público (Carrito)</option>
                     <option value="guias">Guías</option>
                     <option value="escuelas">Escuelas</option>
                     <option value="editoriales">Editoriales</option>
@@ -1044,8 +1047,9 @@ function PanelGlobalView({ user, onLogout }: AjustesScreenProps) {
                     <option value="mantenimiento">Mantenimiento</option>
                     <option value="congreso">Congreso</option>
                     <option value="hospitalidad">Hospitalidad</option>
+                    <option value="eventos_especiales">Eventos Especiales</option>
                   </select>
-                  <p className="text-xs text-brand-purple mt-1 font-medium">Esta ubicación solo será visible en el mapa de este evento.</p>
+                  <p className="text-xs text-brand-purple mt-1 font-medium">Define en qué mapa aparece este sitio.</p>
                 </div>
               </div>
 

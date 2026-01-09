@@ -75,7 +75,13 @@ export function AddTurnoModal({ onClose, onAdd, user, initialEventType }: AddTur
 
     // For PPAM/Expositores:
     if (formData.tipo === 'expositores') {
-      return s.tipo === 'caminata' || s.tipo === 'fijo' || !s.tipo; // Allow generic preaching/meeting points
+      const type = (s.tipo || '').toLowerCase();
+      // Allow legacy/generic types typical for PPAM
+      return type === 'caminata' ||
+        type === 'fijo' ||
+        type === 'punto de encuentro' ||
+        type === 'cartelera' ||
+        !s.tipo;
     }
 
     // For others, allow generic
