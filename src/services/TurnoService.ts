@@ -21,7 +21,9 @@ export class TurnoService {
       `);
 
         if (congregacionId) {
-            query = query.eq('sitios.congregacion_id', congregacionId);
+            // [FIX] Allow Global Sites (null) + My Congregation
+            // Usamos syntax explícita para tabla foránea 'sitios'
+            query = query.or(`congregacion_id.eq.${congregacionId},congregacion_id.is.null`, { foreignTable: 'sitios' });
         }
 
         const { data: turnosTemplates, error: turnosError } = await query;
