@@ -355,7 +355,12 @@ export class TurnoService {
             .from('turnos')
             .insert({
                 sitio_id: sitioId,
-                dia: new Date(turno.fecha).toLocaleDateString('es-ES', { weekday: 'long' }),
+                // [FIX] Timezone-safe weekday calculation
+                dia: (() => {
+                    const [y, m, d] = turno.fecha.split('-').map(Number);
+                    const date = new Date(y, m - 1, d);
+                    return date.toLocaleDateString('es-ES', { weekday: 'long' });
+                })(),
                 horario_inicio: turno.horaInicio,
                 horario_fin: turno.horaFin,
                 voluntarios_max: turno.maxVoluntarios,
