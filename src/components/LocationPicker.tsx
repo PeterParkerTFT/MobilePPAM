@@ -24,16 +24,19 @@ interface LocationPickerProps {
     onLocationSelect: (location: Location) => void;
     height?: string;
     readOnly?: boolean;
+    color?: string; // [NEW] Custom color support
 }
 
 function DraggableMarker({
     position,
     setPosition,
-    readOnly
+    readOnly,
+    color = '59, 130, 246' // Default blue
 }: {
     position: Location;
     setPosition: (pos: Location) => void;
     readOnly?: boolean;
+    color?: string;
 }) {
     const markerRef = useRef<any>(null);
 
@@ -51,12 +54,43 @@ function DraggableMarker({
         [readOnly, setPosition],
     );
 
+    // [NEW] Dynamic SVG Icon with custom color
+    const customIcon = L.divIcon({
+        className: 'custom-div-icon',
+        html: `
+        <div style="
+          background-color: rgb(${color});
+          width: 24px;
+          height: 24px;
+          border-radius: 50% 50% 50% 0;
+          transform: rotate(-45deg);
+          border: 2px solid white;
+          box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        ">
+          <div style="
+            width: 8px;
+            height: 8px;
+            background-color: white;
+            border-radius: 50%;
+            transform: rotate(45deg);
+          "></div>
+        </div>
+      `,
+        iconSize: [24, 24],
+        iconAnchor: [12, 24], // Bottom point
+        popupAnchor: [0, -24]
+    });
+
     return (
         <Marker
             draggable={!readOnly}
             eventHandlers={eventHandlers}
             position={position}
             ref={markerRef}
+            icon={customIcon} // Use custom icon
         >
             <Popup minWidth={90}>
                 {readOnly ? 'Ubicación seleccionada' : 'Arrastrame para ajustar'}
@@ -69,9 +103,15 @@ export function LocationPicker({
     initialLocation = { lat: 19.4326, lng: -99.1332 }, // Default: CDMX (Center)
     onLocationSelect,
     height = '300px',
-    readOnly = false
+    readOnly = false,
+    color
 }: LocationPickerProps) {
     const [position, setPosition] = useState<Location>(initialLocation);
+
+    // [FIX] Update internal state when prop changes (Solving "Wrong Map Location" bug)
+    React.useEffect(() => {
+        setPosition(initialLocation);
+    }, [initialLocation]);
 
     const handleSetPosition = (newPos: Location) => {
         setPosition(newPos);
@@ -94,6 +134,7 @@ export function LocationPicker({
                     position={position}
                     setPosition={handleSetPosition}
                     readOnly={readOnly}
+                    color={color}
                 />
             </MapContainer>
         </div>

@@ -274,6 +274,8 @@ export function AddTurnoModal({ onClose, onAdd, user, initialEventType }: AddTur
                         onLocationSelect={() => { }} // Read-only: no-op
                         initialLocation={formData.coordenadas}
                         height="150px"
+                        readOnly={true}
+                        color={rgbColor}
                       />
                       <p className="text-xs text-center text-gray-400 bg-gray-50 py-1 border-t border-gray-100">
                         Previsualización de ubicación guardada
