@@ -1,11 +1,12 @@
-import React, { useState } from 'react';
-import { X, MapPin, Navigation } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { X, MapPin, Navigation, Calendar, Clock } from 'lucide-react';
 import { User } from '../types/models';
 import { LocationPicker } from './LocationPicker';
 import { TurnoService } from '../services/TurnoService';
-import { eventTypes as globalEventTypes } from '../constants/eventTypes'; // Import global types config if needed, or keep local
+import { CongregacionService } from '../services/CongregacionService'; // [NEW]
+import { eventTypes as globalEventTypes, getEventColor, getEventType } from '../constants/eventTypes';
 
-type EventType = 'predicacion' | 'construccion' | 'congreso' | 'mantenimiento' | 'limpieza' | 'hospitalidad' | string;
+type EventType = 'predicacion' | 'construccion' | 'congreso' | 'mantenimiento' | 'expositores' | 'limpieza' | 'hospitalidad' | string;
 
 interface Turno {
   id: string;
@@ -23,25 +24,15 @@ interface Turno {
   requisitos?: string;
   inscritos?: string[];
   sitioId?: string;
-  territorios?: string; // [NEW] Optional
+  territorios?: string;
 }
 
 interface AddTurnoModalProps {
   onClose: () => void;
   onAdd: (turno: Turno) => void;
   user: User;
-  initialEventType?: string; // [NEW] Context aware
+  initialEventType?: string;
 }
-
-const eventTypes: { type: EventType; label: string; icon: string }[] = [
-  { type: 'predicacion', label: 'Predicación', icon: '📖' },
-  { type: 'expositores', label: 'PPAM', icon: '🎤' }, // Updated match
-  { type: 'construccion', label: 'Construcción', icon: '🏗️' },
-  { type: 'congreso', label: 'Congresos', icon: '🏟️' },
-  { type: 'mantenimiento', label: 'Mantenimiento', icon: '🔧' },
-  { type: 'limpieza', label: 'Limpieza', icon: '🧹' },
-  { type: 'hospitalidad', label: 'Hospitalidad', icon: '🏠' }
-];
 
 export function AddTurnoModal({ onClose, onAdd, user, initialEventType }: AddTurnoModalProps) {
   const [formData, setFormData] = useState({
@@ -56,29 +47,39 @@ export function AddTurnoModal({ onClose, onAdd, user, initialEventType }: AddTur
     coordenadas: undefined as { lat: number; lng: number } | undefined,
     requisitos: '',
     sitioId: '',
-    territorios: '' // [NEW]
+    territorios: ''
   });
 
   const [availableSitios, setAvailableSitios] = useState<any[]>([]);
-  const [useSavedLocation, setUseSavedLocation] = useState(true); // Default to saved location as per user preference
-  const turnoService = new TurnoService();
+  const [useSavedLocation, setUseSavedLocation] = useState(true);
 
-  React.useEffect(() => {
-    // If we have an initial event, we likely want to default to "use saved location"
-    // and Pre-fill title/description if generic
-    if (user.congregacion) {
-      turnoService.getSitios(user.congregacion).then(setAvailableSitios);
-    }
-  }, [user.congregacion]);
+  // Services
+  // const turnoService = new TurnoService(); // We use this for creating, but cong service for creating sites or fetching sites now
+  const congregacionService = new CongregacionService();
 
-  // Filter sites based on selected type
-  // Match "expositores" (PPAM ID) with sites that have event_type='expositores' OR 'caminata'
-  // Also show sites with NO event type (legacy/generic)
+  useEffect(() => {
+    // Load ALL sites to ensure consistency with Map view
+    congregacionService.getAllSitios().then(setAvailableSitios);
+  }, []);
+
+  // Filter sites logic - Strict but Fair
   const filteredSitios = availableSitios.filter(s => {
-    if (!s.event_type) return true; // Show generic sites everywhere ?? Or maybe strictly? User wants to see THEIR sites.
-    // If user selected PPAM (expositores), show sites marked as such
-    if (formData.tipo === 'expositores' && (s.event_type === 'caminata' || s.event_type === 'expositores' || s.tipo === 'caminata')) return true;
-    return s.event_type === formData.tipo;
+    // 1. If site has explicit event type, it MUST match
+    if (s.eventType) {
+      return s.eventType === formData.tipo;
+    }
+
+    // 2. Handling Legacy/Generic Sites (event_type is null/undefined)
+    // If we are in specific strict events (like construction/maintenance), maybe we shouldn't show preaching spots?
+    // User requested "no me deberia sugerir si no es coherente".
+
+    // For PPAM/Expositores:
+    if (formData.tipo === 'expositores') {
+      return s.tipo === 'caminata' || s.tipo === 'fijo' || !s.tipo; // Allow generic preaching/meeting points
+    }
+
+    // For others, allow generic
+    return true;
   });
 
   const handleSitioSelect = (sitioId: string) => {
@@ -89,8 +90,6 @@ export function AddTurnoModal({ onClose, onAdd, user, initialEventType }: AddTur
         sitioId: sitio.id,
         ubicacion: sitio.nombre,
         coordenadas: sitio.coordenadas,
-        // Don't override main type if we are in a specific context, unless explicit
-        // tipo: sitio.tipo || formData.tipo 
       });
     } else {
       setFormData({ ...formData, sitioId: '' });
@@ -111,218 +110,229 @@ export function AddTurnoModal({ onClose, onAdd, user, initialEventType }: AddTur
     onAdd(newTurno);
   };
 
-  // Resolve label for header
-  const currentEventLabel = eventTypes.find(e => e.type === formData.tipo)?.label || globalEventTypes.find(e => e.id === formData.tipo)?.label || 'Actividad';
+  // UI Helpers
+  const currentEventLabel = globalEventTypes.find(e => e.id === formData.tipo)?.label || 'Actividad';
+  const headerColor = getEventColor(formData.tipo);
+  const rgbColor = headerColor; // Assuming getEventColor returns "R, G, B" string
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-end justify-center z-50 animate-in fade-in duration-200">
-      <div className="w-full max-w-[428px] bg-white rounded-t-3xl max-h-[90vh] overflow-y-auto animate-in slide-in-from-bottom duration-300">
-        {/* Header */}
-        <div className="sticky top-0 bg-gradient-to-br from-[#4A5D7C] to-[#5B7FA6] text-white p-6 rounded-t-3xl shadow-lg z-10">
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-end justify-center z-50 animate-in fade-in duration-200">
+
+      {/* Main Container - Fixed Height Layout */}
+      <div className="w-full max-w-[428px] bg-white rounded-t-3xl max-h-[90vh] flex flex-col shadow-2xl animate-in slide-in-from-bottom duration-300">
+
+        {/* FIXED HEADER (Outside Scroll) */}
+        <div
+          className="relative px-6 py-5 rounded-t-3xl shadow-md z-20 flex-shrink-0"
+          style={{
+            background: `linear-gradient(135deg, rgb(${rgbColor}) 0%, rgba(${rgbColor}, 0.8) 100%)`
+          }}
+        >
           <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-xl font-bold">Nueva Actividad</h2>
-              <p className="text-white/80 text-sm font-medium">{currentEventLabel}</p>
+            <div className="text-white">
+              <p className="text-white/80 text-xs font-bold uppercase tracking-wider mb-0.5">Nueva Actividad</p>
+              <h2 className="text-2xl font-bold tracking-tight">{currentEventLabel}</h2>
             </div>
             <button
               onClick={onClose}
-              className="p-2 hover:bg-white/10 rounded-full transition-colors"
+              className="p-2 bg-white/20 hover:bg-white/30 rounded-full transition-colors backdrop-blur-md"
             >
-              <X className="w-6 h-6" />
+              <X className="w-6 h-6 text-white" />
             </button>
           </div>
         </div>
 
-        {/* Form */}
-        <form onSubmit={handleSubmit} className="p-6 space-y-5">
+        {/* SCROLLABLE FORM CONTENT */}
+        <div className="overflow-y-auto flex-1 p-6 space-y-6 bg-gray-50/50">
+          <form onSubmit={handleSubmit} className="space-y-6">
 
-          {/* Tipo - Only show if NO initial context was provided */}
-          {!initialEventType && (
-            <div className="animate-in fade-in slide-in-from-top-4">
-              <label className="block text-gray-700 font-medium mb-3">Tipo de Actividad</label>
-              <div className="grid grid-cols-2 gap-2">
-                {eventTypes.map((event) => (
-                  <button
-                    key={event.type}
-                    type="button"
-                    onClick={() => setFormData({ ...formData, tipo: event.type })}
-                    className={`p-3 rounded-xl border-2 transition-all ${formData.tipo === event.type
-                      ? 'border-[#4A5D7C] bg-blue-50'
-                      : 'border-gray-200 hover:border-gray-300'
-                      }`}
-                  >
-                    <div className="text-2xl mb-1">{event.icon}</div>
-                    <div className="text-sm text-gray-700">{event.label}</div>
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Fecha y Horarios (Agrupados para ahorrar espacio visual) */}
-          <div className="bg-gray-50 p-4 rounded-xl border border-gray-100">
-            <div className="mb-4">
-              <label className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-1 block">Fecha</label>
-              <input
-                type="date"
-                required
-                value={formData.fecha}
-                onChange={(e) => setFormData({ ...formData, fecha: e.target.value })}
-                className="w-full p-2 bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#4A5D7C] outline-none"
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-1 block">Inicio</label>
+            {/* Fecha y Horarios - Modern Card */}
+            <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100">
+              <div className="mb-4">
+                <label className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-2 flex items-center gap-1.5">
+                  <Calendar className="w-3.5 h-3.5" /> Fecha
+                </label>
                 <input
-                  type="time"
+                  type="date"
                   required
-                  value={formData.horaInicio}
-                  onChange={(e) => setFormData({ ...formData, horaInicio: e.target.value })}
-                  className="w-full p-2 bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#4A5D7C] outline-none"
+                  value={formData.fecha}
+                  onChange={(e) => setFormData({ ...formData, fecha: e.target.value })}
+                  className="w-full p-3 bg-gray-50 border-0 rounded-xl focus:ring-2 focus:ring-[rgb(var(--color-primary))] text-gray-900 font-medium outline-none transition-all"
+                  style={{ '--color-primary': rgbColor } as any}
                 />
               </div>
-              <div>
-                <label className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-1 block">Fin</label>
-                <input
-                  type="time"
-                  required
-                  value={formData.horaFin}
-                  onChange={(e) => setFormData({ ...formData, horaFin: e.target.value })}
-                  className="w-full p-2 bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#4A5D7C] outline-none"
-                />
-              </div>
-            </div>
-          </div>
 
-          {/* Ubicación */}
-          <div>
-            <div className="flex gap-2 mb-3">
-              <button
-                type="button"
-                onClick={() => setUseSavedLocation(true)}
-                className={`flex-1 py-2 text-sm font-medium rounded-lg transition-colors ${useSavedLocation
-                  ? 'bg-[#4A5D7C] text-white shadow-md'
-                  : 'bg-white text-gray-600 border hover:bg-gray-50'
-                  }`}
-              >
-                <Navigation className="w-4 h-4 inline-block mr-1.5 -mt-0.5" />
-                Sitio Guardado
-              </button>
-              <button
-                type="button"
-                onClick={() => setUseSavedLocation(false)}
-                className={`flex-1 py-2 text-sm font-medium rounded-lg transition-colors ${!useSavedLocation
-                  ? 'bg-[#4A5D7C] text-white shadow-md'
-                  : 'bg-white text-gray-600 border hover:bg-gray-50'
-                  }`}
-              >
-                <MapPin className="w-4 h-4 inline-block mr-1.5 -mt-0.5" />
-                Nuevo Sitio
-              </button>
-            </div>
-
-            {useSavedLocation ? (
-              <div className="animate-in fade-in">
-                <select
-                  value={formData.sitioId}
-                  onChange={(e) => handleSitioSelect(e.target.value)}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#4A5D7C] focus:border-transparent outline-none bg-white font-medium text-gray-700"
-                >
-                  <option value="">-- Elija una ubicación para {currentEventLabel} --</option>
-                  {filteredSitios.map(s => (
-                    <option key={s.id} value={s.id}>{s.nombre}</option>
-                  ))}
-                  {filteredSitios.length === 0 && (
-                    <option disabled>No hay sitios registrados para esta categoría</option>
-                  )}
-                </select>
-                {formData.sitioId && (
-                  <p className="text-sm text-green-600 mt-2 flex items-center gap-1 font-medium bg-green-50 p-2 rounded-lg">
-                    ✓ Ubicación seleccionada
-                  </p>
-                )}
-              </div>
-            ) : (
-              <div className="animate-in fade-in space-y-3">
-                <input
-                  type="text"
-                  required={!useSavedLocation}
-                  value={formData.ubicacion}
-                  onChange={(e) => setFormData({ ...formData, ubicacion: e.target.value, sitioId: '' })}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#4A5D7C] focus:border-transparent outline-none"
-                  placeholder="Ej: Plaza Principal"
-                />
-                <div className="rounded-xl overflow-hidden border border-gray-300">
-                  <LocationPicker
-                    onLocationSelect={(loc) => setFormData({ ...formData, coordenadas: loc, sitioId: '' })}
-                    height="180px"
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-2 flex items-center gap-1.5">
+                    <Clock className="w-3.5 h-3.5" /> Inicio
+                  </label>
+                  <input
+                    type="time"
+                    required
+                    value={formData.horaInicio}
+                    onChange={(e) => setFormData({ ...formData, horaInicio: e.target.value })}
+                    className="w-full p-3 bg-gray-50 border-0 rounded-xl focus:ring-2 focus:ring-[rgb(var(--color-primary))] text-gray-900 font-medium outline-none transition-all text-center"
+                    style={{ '--color-primary': rgbColor } as any}
                   />
                 </div>
-                <p className="text-xs text-gray-500 text-center">Arrastra el pin para ajustar</p>
+                <div>
+                  <label className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-2 flex items-center gap-1.5">
+                    <Clock className="w-3.5 h-3.5" /> Fin
+                  </label>
+                  <input
+                    type="time"
+                    required
+                    value={formData.horaFin}
+                    onChange={(e) => setFormData({ ...formData, horaFin: e.target.value })}
+                    className="w-full p-3 bg-gray-50 border-0 rounded-xl focus:ring-2 focus:ring-[rgb(var(--color-primary))] text-gray-900 font-medium outline-none transition-all text-center"
+                    style={{ '--color-primary': rgbColor } as any}
+                  />
+                </div>
               </div>
-            )}
-          </div>
-
-          {/* Territorios (NUEVO) */}
-          {formData.tipo !== 'congreso' && (
-            <div>
-              <label className="block text-gray-700 font-medium mb-2">Territorio / Notas (Opcional)</label>
-              <input
-                type="text"
-                value={formData.territorios}
-                onChange={(e) => setFormData({ ...formData, territorios: e.target.value })}
-                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#4A5D7C] focus:border-transparent outline-none"
-                placeholder="Ej: Mapas 12, 14 y 15"
-              />
             </div>
-          )}
 
-          {/* Información Adicional Collapsible o Grid */}
-          <div className="grid grid-cols-2 gap-4">
+            {/* Ubicación Section */}
             <div>
-              <label className="block text-gray-700 font-medium mb-2 text-sm">Voluntarios</label>
-              <input
-                type="number"
-                required
-                min="1"
-                value={formData.maxVoluntarios}
-                onChange={(e) => setFormData({ ...formData, maxVoluntarios: parseInt(e.target.value) })}
-                className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#4A5D7C] outline-none"
-              />
+              <div className="flex bg-gray-100 p-1 rounded-xl mb-4">
+                <button
+                  type="button"
+                  onClick={() => setUseSavedLocation(true)}
+                  className={`flex-1 py-2.5 text-sm font-semibold rounded-lg transition-all shadow-sm ${useSavedLocation
+                    ? 'bg-white text-gray-900 shadow'
+                    : 'bg-transparent text-gray-500 hover:text-gray-700 shadow-none'
+                    }`}
+                >
+                  <Navigation className={`w-4 h-4 inline-block mr-1.5 -mt-0.5 ${useSavedLocation ? 'text-[rgb(var(--color-primary))]' : ''}`} style={{ '--color-primary': rgbColor } as any} />
+                  Sitio Guardado
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setUseSavedLocation(false)}
+                  className={`flex-1 py-2.5 text-sm font-semibold rounded-lg transition-all shadow-sm ${!useSavedLocation
+                    ? 'bg-white text-gray-900 shadow'
+                    : 'bg-transparent text-gray-500 hover:text-gray-700 shadow-none'
+                    }`}
+                >
+                  <MapPin className={`w-4 h-4 inline-block mr-1.5 -mt-0.5 ${!useSavedLocation ? 'text-[rgb(var(--color-primary))]' : ''}`} style={{ '--color-primary': rgbColor } as any} />
+                  Nuevo Sitio
+                </button>
+              </div>
+
+              {useSavedLocation ? (
+                <div className="animate-in fade-in zoom-in-95 duration-200">
+                  <div className="relative">
+                    <select
+                      value={formData.sitioId}
+                      onChange={(e) => handleSitioSelect(e.target.value)}
+                      className="w-full pl-4 pr-10 py-4 border-0 bg-white shadow-sm ring-1 ring-gray-200 rounded-xl focus:ring-2 focus:ring-[rgb(var(--color-primary))] outline-none appearance-none font-medium text-gray-700 transition-all"
+                      style={{ '--color-primary': rgbColor } as any}
+                    >
+                      <option value="">Seleccionar ubicación...</option>
+                      {filteredSitios.map(s => (
+                        <option key={s.id} value={s.id}>{s.nombre}</option>
+                      ))}
+                    </select>
+                    <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6" /></svg>
+                    </div>
+                  </div>
+
+                  {filteredSitios.length === 0 && (
+                    <p className="text-xs text-amber-600 mt-2 bg-amber-50 p-2 rounded-lg border border-amber-100">
+                      No se encontraron sitios guardados específicos para {currentEventLabel}. Puedes crear uno nuevo.
+                    </p>
+                  )}
+                </div>
+              ) : (
+                <div className="animate-in fade-in zoom-in-95 duration-200 space-y-4">
+                  <input
+                    type="text"
+                    required
+                    value={formData.ubicacion}
+                    onChange={(e) => setFormData({ ...formData, ubicacion: e.target.value, sitioId: '' })}
+                    className="w-full px-4 py-3 border-0 bg-white shadow-sm ring-1 ring-gray-200 rounded-xl focus:ring-2 focus:ring-[rgb(var(--color-primary))] outline-none transition-all"
+                    style={{ '--color-primary': rgbColor } as any}
+                    placeholder="Nombre del lugar (Ej: Plaza Principal)"
+                  />
+                  <div className="rounded-xl overflow-hidden shadow-sm border border-gray-200 ring-4 ring-white">
+                    <LocationPicker
+                      onLocationSelect={(loc) => setFormData({ ...formData, coordenadas: loc, sitioId: '' })}
+                      height="200px"
+                    />
+                  </div>
+                  <p className="text-xs text-gray-500 text-center flex items-center justify-center gap-1">
+                    <MapPin className="w-3 h-3" /> Arrastra el marcador a la ubicación exacta
+                  </p>
+                </div>
+              )}
             </div>
-            {/* Note: Titulo/Descripcion are less critical if site is selected, but kept for custom overrides */}
-          </div>
 
-          {/* Título (Auto-filled but editable) - Moving down as it's secondary to Location/Time */}
-          <div>
-            <label className="block text-gray-700 font-medium mb-1 text-sm">Título del Turno</label>
-            <input
-              type="text"
-              required
-              value={formData.titulo}
-              onChange={(e) => setFormData({ ...formData, titulo: e.target.value })}
-              className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#4A5D7C] outline-none bg-gray-50"
-              placeholder={formData.ubicacion ? formData.ubicacion : "Ej: Predicación Pública"}
-            />
-          </div>
+            {/* Optional Fields Group */}
+            <div className="space-y-4">
+              {/* Territorios */}
+              {formData.tipo !== 'congreso' && (
+                <div>
+                  <label className="block text-gray-700 text-sm font-bold mb-2 ml-1">Territorio / Notas</label>
+                  <input
+                    type="text"
+                    value={formData.territorios}
+                    onChange={(e) => setFormData({ ...formData, territorios: e.target.value })}
+                    className="w-full px-4 py-3 bg-white border-0 shadow-sm ring-1 ring-gray-200 rounded-xl focus:ring-2 focus:ring-[rgb(var(--color-primary))] outline-none transition-all"
+                    style={{ '--color-primary': rgbColor } as any}
+                    placeholder="Ej: Mapas 12, 14 y 15 (Opcional)"
+                  />
+                </div>
+              )}
 
-          <div className="flex gap-3 pt-4 border-t border-gray-100">
-            <button
-              type="button"
-              onClick={onClose}
-              className="flex-1 bg-white border border-gray-300 text-gray-700 py-3 rounded-xl font-medium hover:bg-gray-50 transition-colors"
-            >
-              Cancelar
-            </button>
-            <button
-              type="submit"
-              className="flex-1 bg-gradient-to-r from-[#4A5D7C] to-[#5B7FA6] text-white py-3 rounded-xl font-medium hover:shadow-lg transition-all transform active:scale-95"
-            >
-              Crear Actividad
-            </button>
-          </div>
-        </form>
+              {/* Voluntarios */}
+              <div>
+                <label className="block text-gray-700 text-sm font-bold mb-2 ml-1">Cupo Máximo</label>
+                <input
+                  type="number"
+                  required
+                  min="1"
+                  value={formData.maxVoluntarios}
+                  onChange={(e) => setFormData({ ...formData, maxVoluntarios: parseInt(e.target.value) })}
+                  className="w-full px-4 py-3 bg-white border-0 shadow-sm ring-1 ring-gray-200 rounded-xl focus:ring-2 focus:ring-[rgb(var(--color-primary))] outline-none transition-all"
+                  style={{ '--color-primary': rgbColor } as any}
+                />
+              </div>
+
+              {/* Título (Hidden/Auto unless user wants to edit?) - Keeping visible for freedom */}
+              <div>
+                <label className="block text-gray-700 text-sm font-bold mb-2 ml-1">Título Personalizado</label>
+                <input
+                  type="text"
+                  required
+                  value={formData.titulo}
+                  onChange={(e) => setFormData({ ...formData, titulo: e.target.value })}
+                  className="w-full px-4 py-3 bg-gray-50 border-0 ring-1 ring-gray-200 rounded-xl focus:ring-2 focus:ring-[rgb(var(--color-primary))] outline-none transition-all"
+                  style={{ '--color-primary': rgbColor } as any}
+                  placeholder={formData.ubicacion ? formData.ubicacion : `Turno ${currentEventLabel}`}
+                />
+              </div>
+            </div>
+
+            {/* Spacer for button */}
+            <div className="h-4"></div>
+
+          </form>
+        </div>
+
+        {/* FOOTER BUTTONS (Fixed at bottom of modal) */}
+        <div className="p-4 bg-white border-t border-gray-100 rounded-b-3xl">
+          <button
+            onClick={(e) => handleSubmit(e as any)}
+            type="button"
+            className="w-full text-white py-4 rounded-xl font-bold text-lg shadow-lg hover:shadow-xl transition-all transform active:scale-[0.98] flex items-center justify-center gap-2"
+            style={{
+              background: `linear-gradient(to right, rgb(${rgbColor}), rgba(${rgbColor}, 0.8))`
+            }}
+          >
+            Crear Actividad
+          </button>
+        </div>
       </div>
     </div>
   );
