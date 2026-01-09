@@ -23,6 +23,7 @@ interface TurnosScreenProps {
 
 export function TurnosScreen({ user, onLogout, turnos, capitanes, onInscripcion, onNavigateToInformes, onTurnoCreated }: TurnosScreenProps) {
   const [selectedEvent, setSelectedEvent] = useState<string>('carrito');
+  const [showAllEvents, setShowAllEvents] = useState(false);
   const [showPastTurnos, setShowPastTurnos] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
   const [selectedTurno, setSelectedTurno] = useState<Turno | null>(null);
@@ -133,8 +134,8 @@ export function TurnosScreen({ user, onLogout, turnos, capitanes, onInscripcion,
           >
             Selecciona un Evento
           </h2>
-          <div className="grid grid-cols-3 gap-2">
-            {eventTypes.map((type) => (
+          <div className="grid grid-cols-3 gap-2 animate-in fade-in duration-300">
+            {eventTypes.slice(0, showAllEvents ? undefined : 6).map((type) => (
               <button
                 key={type.id}
                 onClick={() => setSelectedEvent(type.id)}
@@ -164,7 +165,7 @@ export function TurnosScreen({ user, onLogout, turnos, capitanes, onInscripcion,
                   style={{
                     color: selectedEvent === type.id
                       ? `rgb(${type.color})`
-                      : `rgb(${colors.text.primary})`
+                      : `rgb(${colors.text.primary})` // Fixed color reference
                   }}
                 >
                   {type.label}
@@ -172,6 +173,24 @@ export function TurnosScreen({ user, onLogout, turnos, capitanes, onInscripcion,
               </button>
             ))}
           </div>
+
+          {/* Toggle Button */}
+          {eventTypes.length > 6 && (
+            <button
+              onClick={() => setShowAllEvents(!showAllEvents)}
+              className="w-full mt-3 py-2 text-sm font-medium rounded-lg transition-colors flex items-center justify-center gap-1"
+              style={{
+                color: `rgb(${colors.interactive.primary})`,
+                backgroundColor: `rgba(${colors.interactive.primary}, 0.05)`
+              }}
+            >
+              {showAllEvents ? (
+                <>Ver menos categorías <ChevronRight className="w-4 h-4 rotate-270" style={{ transform: 'rotate(-90deg)' }} /></>
+              ) : (
+                <>Ver más categorías ({eventTypes.length - 6}) <ChevronRight className="w-4 h-4" style={{ transform: 'rotate(90deg)' }} /></>
+              )}
+            </button>
+          )}
         </div>
 
         {/* Título de la categoría seleccionada */}
