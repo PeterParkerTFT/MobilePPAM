@@ -1,11 +1,11 @@
 import React from 'react';
-import { Calendar, Hand, Users, Settings, UserCheck } from 'lucide-react';
+import { Calendar, Hand, Users, Settings, UserCheck, Map } from 'lucide-react';
 import { UserRole } from '../types';
 import { useThemeColors } from '../hooks/useThemeColors';
 
 interface BottomNavProps {
-  activeTab: 'turnos' | 'mis-turnos' | 'voluntarios' | 'aprobaciones' | 'ajustes' | 'informes';
-  onTabChange: (tab: 'turnos' | 'mis-turnos' | 'voluntarios' | 'aprobaciones' | 'ajustes' | 'informes') => void;
+  activeTab: 'turnos' | 'mis-turnos' | 'voluntarios' | 'aprobaciones' | 'ajustes' | 'informes' | 'ubicaciones';
+  onTabChange: (tab: 'turnos' | 'mis-turnos' | 'voluntarios' | 'aprobaciones' | 'ajustes' | 'informes' | 'ubicaciones') => void;
   userRole: UserRole;
 }
 
@@ -36,6 +36,12 @@ export function BottomNav({ activeTab, onTabChange, userRole }: BottomNavProps) 
       label: 'Aprobaciones',
       icon: UserCheck,
       allowedRoles: [UserRole.AdminLocal, UserRole.AdminGlobal]
+    },
+    {
+      id: 'ubicaciones' as const,
+      label: 'Ubicaciones',
+      icon: Map,
+      allowedRoles: [UserRole.AdminLocal, UserRole.AdminGlobal, UserRole.Capitan, UserRole.Voluntario]
     },
     {
       id: 'ajustes' as const,

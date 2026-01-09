@@ -52,8 +52,8 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
   const handleSignupSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Validar que TODOS los roles (incluido Ultra Admin) deben seleccionar congregación
-    if ((signupForm.role === UserRole.Capitan || signupForm.role === UserRole.AdminLocal || signupForm.role === UserRole.AdminGlobal) && !signupForm.congregacion) {
+    // Validar que TODOS los roles (incluido Voluntario y Ultra Admin) deben seleccionar congregación
+    if ((signupForm.role === UserRole.Capitan || signupForm.role === UserRole.AdminLocal || signupForm.role === UserRole.AdminGlobal || signupForm.role === UserRole.Voluntario) && !signupForm.congregacion) {
       alert('Por favor seleccione su congregación');
       return;
     }
@@ -305,8 +305,8 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
                   </div>
                 </div>
 
-                {/* Congregación (TODOS los roles excepto Voluntario) */}
-                {(signupForm.role === UserRole.Capitan || signupForm.role === UserRole.AdminLocal || signupForm.role === UserRole.AdminGlobal) && (
+                {/* Congregación (TODOS los roles) */}
+                {(signupForm.role === UserRole.Capitan || signupForm.role === UserRole.AdminLocal || signupForm.role === UserRole.AdminGlobal || signupForm.role === UserRole.Voluntario) && (
                   <CongregationCombobox
                     congregaciones={congregacionesList}
                     value={signupForm.congregacion}
@@ -319,7 +319,9 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
                         ? 'Su solicitud será enviada a los ancianos de esta congregación'
                         : signupForm.role === UserRole.AdminGlobal
                           ? 'Tendrá acceso global a todas las congregaciones, pero esta será su congregación de origen'
-                          : 'Solo verá solicitudes y hermanos de esta congregación'
+                          : signupForm.role === UserRole.Voluntario
+                            ? 'Seleccione la congregación a la que asiste regularmente'
+                            : 'Solo verá solicitudes y hermanos de esta congregación'
                     }
                   />
                 )}

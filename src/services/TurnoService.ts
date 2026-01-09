@@ -29,36 +29,74 @@ export class TurnoService {
 
         if (turnosError) throw turnosError;
 
-        // 2. Mappear a modelo de UI
-        // En una app real, aqui cruzariamos con 'turno_voluntarios' para ver cupos en fechas específicas.
-        // Para este MVP, asumiremos que mostramos el "Horario General".
+        // 2. Obtener inscripciones para la fecha actual (ocupación real)
+        const fechaHoy = new Date().toISOString().split('T')[0];
+        const turnoIds = turnosData.map((t: any) => t.id);
 
-        return turnosData.map((t: any) => ({
-            id: t.id,
-            dia: t.dia,
-            horarioInicio: t.horario_inicio,
-            horarioFin: t.horario_fin,
-            sitioId: t.sitio_id,
-            sitioNombre: t.sitios.nombre,
-            capitanId: t.capitan_id,
-            capitanNombre: t.users?.nombre,
-            voluntariosMax: t.voluntarios_max,
-            fecha: new Date().toISOString().split('T')[0], // Placeholder: Hoy
-            cupoActual: 0, // Placeholder
-            estado: 'disponible',
+        let ocupacionMap: Record<string, number> = {};
+        let inscritosMap: Record<string, string[]> = {};
 
-            // Compatibilidad con interfaz vieja 'Turno'
-            tipo: t.sitios.tipo || 'fijo',
-            titulo: t.sitios.nombre,
-            descripcion: `Turno de ${t.dia}`,
-            horaInicio: t.horario_inicio.substring(0, 5),
-            horaFin: t.horario_fin.substring(0, 5),
-            grupoWhatsApp: '',
-            ubicacion: t.sitios.nombre,
-            coordenadas: t.sitios.coordenadas,
-            voluntariosInscritos: [],
-            cupoMaximo: t.voluntarios_max
-        } as unknown as TurnoSesion));
+        if (turnoIds.length > 0) {
+            const { data: inscripciones, error: inscError } = await supabase
+                .from('turno_voluntarios')
+                .select('turno_id, user_id')
+                .eq('fecha', fechaHoy)
+                .in('turno_id', turnoIds);
+
+            if (!inscError && inscripciones) {
+                inscripciones.forEach((ins: any) => {
+                    // Contar ocupación
+                    ocupacionMap[ins.turno_id] = (ocupacionMap[ins.turno_id] || 0) + 1;
+
+                    // Guardar IDs de inscritos (para saber si yo estoy inscrito)
+                    if (!inscritosMap[ins.turno_id]) {
+                        inscritosMap[ins.turno_id] = [];
+                    }
+                    inscritosMap[ins.turno_id].push(ins.user_id);
+                });
+            }
+        }
+
+        // 3. Mappear a modelo de UI con datos reales
+        return turnosData.map((t: any) => {
+            const cupoActual = ocupacionMap[t.id] || 0;
+            const cupoMax = t.voluntarios_max;
+
+            // Determinar estado basado en ocupación real
+            let estado: 'disponible' | 'limitado' | 'completo' = 'disponible';
+            if (cupoActual >= cupoMax) {
+                estado = 'completo';
+            } else if (cupoActual >= cupoMax * 0.8) {
+                estado = 'limitado';
+            }
+
+            return {
+                id: t.id,
+                dia: t.dia,
+                horarioInicio: t.horario_inicio,
+                horarioFin: t.horario_fin,
+                sitioId: t.sitio_id,
+                sitioNombre: t.sitios.nombre,
+                capitanId: t.capitan_id,
+                capitanNombre: t.users?.nombre,
+                voluntariosMax: cupoMax,
+                fecha: fechaHoy,
+                cupoActual: cupoActual,
+                estado: estado,
+
+                // Compatibilidad con interfaz vieja 'Turno'
+                tipo: t.sitios.tipo || 'fijo',
+                titulo: t.sitios.nombre,
+                descripcion: `Turno de ${t.dia}`,
+                horaInicio: t.horario_inicio.substring(0, 5),
+                horaFin: t.horario_fin.substring(0, 5),
+                grupoWhatsApp: '',
+                ubicacion: t.sitios.nombre,
+                coordenadas: t.sitios.coordenadas,
+                voluntariosInscritos: inscritosMap[t.id] || [],
+                cupoMaximo: cupoMax
+            } as unknown as TurnoSesion;
+        });
     }
 
     async inscribirse(turnoId: string, userId: string, fecha: string): Promise<boolean> {
