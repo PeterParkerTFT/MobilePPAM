@@ -36,7 +36,7 @@ import {
 import { HeaderWithTheme } from '../components/HeaderWithTheme';
 import { useThemeColors } from '../hooks/useThemeColors';
 import { congregaciones, getCongregacionNombre } from '../data/congregaciones';
-import jwLogo from 'figma:asset/424a964f516f725d66c9860b3a47b2b6be5d4747.png';
+// import jwLogo from 'figma:asset/424a964f516f725d66c9860b3a47b2b6be5d4747.png';
 
 interface AjustesScreenProps {
   user: User;

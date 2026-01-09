@@ -1,6 +1,6 @@
 // Importar imágenes de eventos
-import carritoImg from 'figma:asset/b5f9bc8cf8ae2256196253f91d15438b6e5511fa.png';
-import guiasImg from 'figma:asset/14b8cb294160b12e248fbaa4047291c642239991.png';
+// import carritoImg from 'figma:asset/b5f9bc8cf8ae2256196253f91d15438b6e5511fa.png';
+// import guiasImg from 'figma:asset/14b8cb294160b12e248fbaa4047291c642239991.png';
 
 export interface EventType {
   id: string;
@@ -16,7 +16,7 @@ export const eventTypes: EventType[] = [
     id: 'expositores', // Keeping ID for compatibility
     label: 'PPAM',
     icon: '🎤',
-    image: carritoImg,
+    // image: carritoImg,
     color: '139, 92, 246',
     description: 'Puntos de encuentro, calendario y gestión de cupos'
   },
@@ -24,7 +24,7 @@ export const eventTypes: EventType[] = [
     id: 'guias',
     label: 'Guías',
     icon: '👥',
-    image: guiasImg, // Usando imagen de predicación informal
+    // image: guiasImg, // Usando imagen de predicación informal
     color: '59, 130, 246', // Azul
     description: 'Guía para grupos de predicación'
   },

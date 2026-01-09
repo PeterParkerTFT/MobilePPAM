@@ -1,6 +1,6 @@
 // Importar imágenes de métodos de predicación
-import predicacionInformalImg from 'figma:asset/14b8cb294160b12e248fbaa4047291c642239991.png';
-import carritoPublicoImg from 'figma:asset/b5f9bc8cf8ae2256196253f91d15438b6e5511fa.png';
+// import predicacionInformalImg from 'figma:asset/14b8cb294160b12e248fbaa4047291c642239991.png';
+// import carritoPublicoImg from 'figma:asset/b5f9bc8cf8ae2256196253f91d15438b6e5511fa.png';
 
 export interface PredicacionType {
   id: string;
@@ -16,7 +16,7 @@ export const predicacionTypes: PredicacionType[] = [
     id: 'informal',
     label: 'Predicación Informal',
     icon: '🚶',
-    image: predicacionInformalImg,
+    // image: predicacionInformalImg,
     color: '139, 92, 246', // Violeta
     description: 'Testificación informal, casa en casa'
   },
@@ -24,7 +24,7 @@ export const predicacionTypes: PredicacionType[] = [
     id: 'carrito',
     label: 'Testigo Público',
     icon: '🛒',
-    image: carritoPublicoImg,
+    // image: carritoPublicoImg,
     color: '59, 130, 246', // Azul
     description: 'Carrito de literatura en lugares públicos'
   },
