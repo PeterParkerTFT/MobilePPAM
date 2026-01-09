@@ -10,95 +10,111 @@ export class TurnoService {
     async getTurnosDisponibles(congregacionId?: string): Promise<TurnoSesion[]> {
         if (!supabase) throw new Error('Supabase no configurado');
 
-        // 1. Obtener Turnos Base (Horarios)
-        // Filtramos por congregación del sitio si es necesario
+        // 1. Obtener Templates (Turnos definidos en la semana)
         let query = supabase
             .from('turnos')
             .select(`
         *,
-        sitios!inner (id, nombre, congregacion_id, coordenadas),
+        sitios!inner (id, nombre, congregacion_id, coordenadas, tipo, event_type),
         users (id, nombre)
       `);
 
         if (congregacionId) {
-            // Filtro implícito por join con sitios
             query = query.eq('sitios.congregacion_id', congregacionId);
         }
 
-        const { data: turnosData, error: turnosError } = await query;
-
+        const { data: turnosTemplates, error: turnosError } = await query;
         if (turnosError) throw turnosError;
 
-        // 2. Obtener inscripciones para la fecha actual (ocupación real)
-        const fechaHoy = new Date().toISOString().split('T')[0];
-        const turnoIds = turnosData.map((t: any) => t.id);
+        // 2. Generar instancias para los próximos 7 días
+        const DAYS_TO_SHOW = 7;
+        const upcomingTurnos: TurnoSesion[] = [];
+        const today = new Date();
+        const datesToCheck: string[] = [];
 
-        let ocupacionMap: Record<string, number> = {};
-        let inscritosMap: Record<string, string[]> = {};
-
-        if (turnoIds.length > 0) {
-            const { data: inscripciones, error: inscError } = await supabase
-                .from('turno_voluntarios')
-                .select('turno_id, user_id')
-                .eq('fecha', fechaHoy)
-                .in('turno_id', turnoIds);
-
-            if (!inscError && inscripciones) {
-                inscripciones.forEach((ins: any) => {
-                    // Contar ocupación
-                    ocupacionMap[ins.turno_id] = (ocupacionMap[ins.turno_id] || 0) + 1;
-
-                    // Guardar IDs de inscritos (para saber si yo estoy inscrito)
-                    if (!inscritosMap[ins.turno_id]) {
-                        inscritosMap[ins.turno_id] = [];
-                    }
-                    inscritosMap[ins.turno_id].push(ins.user_id);
-                });
-            }
+        // Pre-calculate dates and maps
+        for (let i = 0; i < DAYS_TO_SHOW; i++) {
+            const date = new Date(today);
+            date.setDate(today.getDate() + i);
+            datesToCheck.push(date.toISOString().split('T')[0]);
         }
 
-        // 3. Mappear a modelo de UI con datos reales
-        return turnosData.map((t: any) => {
-            const cupoActual = ocupacionMap[t.id] || 0;
-            const cupoMax = t.voluntarios_max;
+        // 3. Obtener inscripciones para todo el rango de fechas
+        // Optimización: Una sola query para todas las fechas requeridas
+        const { data: allInscripciones, error: inscError } = await supabase
+            .from('turno_voluntarios')
+            .select('turno_id, user_id, fecha')
+            .in('fecha', datesToCheck);
 
-            // Determinar estado basado en ocupación real
-            let estado: 'disponible' | 'limitado' | 'completo' = 'disponible';
-            if (cupoActual >= cupoMax) {
-                estado = 'completo';
-            } else if (cupoActual >= cupoMax * 0.8) {
-                estado = 'limitado';
-            }
+        if (inscError) console.error("Error fetching inscriptions", inscError);
 
-            return {
-                id: t.id,
-                dia: t.dia,
-                horarioInicio: t.horario_inicio,
-                horarioFin: t.horario_fin,
-                sitioId: t.sitio_id,
-                sitioNombre: t.sitios.nombre,
-                capitanId: t.capitan_id,
-                capitanNombre: t.users?.nombre,
-                voluntariosMax: cupoMax,
-                fecha: fechaHoy,
-                cupoActual: cupoActual,
-                estado: estado,
-
-                // Compatibilidad con interfaz vieja 'Turno'
-                // [FIX] Prioritize new event_type for correct filtering
-                tipo: t.sitios.event_type || t.sitios.tipo || 'fijo',
-                titulo: t.sitios.nombre,
-                descripcion: `Turno de ${t.dia}`,
-                horaInicio: t.horario_inicio.substring(0, 5),
-                horaFin: t.horario_fin.substring(0, 5),
-                grupoWhatsApp: '',
-                ubicacion: t.sitios.nombre,
-                coordenadas: t.sitios.coordenadas,
-                voluntariosInscritos: inscritosMap[t.id] || [],
-                cupoMaximo: cupoMax,
-                territorios: t.territorios // [NEW] Map territories
-            } as unknown as TurnoSesion;
+        // Map para búsqueda rápida: date_string -> { turno_id -> [user_ids] }
+        const inscripcionesPorFecha: Record<string, Record<string, string[]>> = {};
+        allInscripciones?.forEach((ins: any) => {
+            if (!inscripcionesPorFecha[ins.fecha]) inscripcionesPorFecha[ins.fecha] = {};
+            if (!inscripcionesPorFecha[ins.fecha][ins.turno_id]) inscripcionesPorFecha[ins.fecha][ins.turno_id] = [];
+            inscripcionesPorFecha[ins.fecha][ins.turno_id].push(ins.user_id);
         });
+
+        // 4. Construir lista plana de turnos iterando días
+        for (const dateStr of datesToCheck) {
+            // Determinar día de la semana para esta fecha (ej: 'lunes')
+            // Ajustar zona horaria si es necesario, asumimos local date string 'YYYY-MM-DD' corresponde
+            // Para obtener nombre de día seguro: crear fecha desde partes para evitar timezone drift
+            const [y, m, d] = dateStr.split('-').map(Number);
+            const dateObj = new Date(y, m - 1, d); // Mes 0-indexed
+
+            // Normalizar a minúsculas y quitar acentos si es necesario, dependiendo de cómo guarde la BD
+            // BD guarda: 'lunes', 'martes', etc. (toLocaleDateString suele dar minúsculas)
+            const dayName = dateObj.toLocaleDateString('es-ES', { weekday: 'long' }).toLowerCase();
+
+            // Filtrar templates que caen en este día de la semana
+            const matchingTemplates = turnosTemplates.filter((t: any) => {
+                const templateDay = (t.dia || '').toLowerCase();
+                // Simple equality check, could make more robust (accent removal) if needed
+                return templateDay === dayName;
+            });
+
+            matchingTemplates.forEach((t: any) => {
+                const inscritos = inscripcionesPorFecha[dateStr]?.[t.id] || [];
+                const cupoActual = inscritos.length;
+                const cupoMax = t.voluntarios_max;
+
+                let estado: 'disponible' | 'limitado' | 'completo' = 'disponible';
+                if (cupoActual >= cupoMax) estado = 'completo';
+                else if (cupoActual >= cupoMax * 0.8) estado = 'limitado';
+
+                upcomingTurnos.push({
+                    id: t.id,
+                    dia: t.dia,
+                    horarioInicio: t.horario_inicio,
+                    horarioFin: t.horario_fin,
+                    sitioId: t.sitio_id,
+                    sitioNombre: t.sitios.nombre,
+                    capitanId: t.capitan_id,
+                    capitanNombre: t.users?.nombre,
+                    voluntariosMax: cupoMax,
+                    fecha: dateStr, // [CRITICAL] Instance specific date
+                    cupoActual: cupoActual,
+                    estado: estado,
+
+                    // Frontend compatibility
+                    tipo: t.sitios.event_type || t.sitios.tipo || 'fijo',
+                    titulo: t.sitios.nombre,
+                    descripcion: `${t.sitios.nombre} (${t.dia})`,
+                    horaInicio: t.horario_inicio.substring(0, 5),
+                    horaFin: t.horario_fin.substring(0, 5),
+                    grupoWhatsApp: '',
+                    ubicacion: t.sitios.nombre,
+                    coordenadas: t.sitios.coordenadas,
+                    voluntariosInscritos: inscritos,
+                    cupoMaximo: cupoMax,
+                    territorios: t.territorios
+                } as unknown as TurnoSesion);
+            });
+        }
+
+        return upcomingTurnos;
     }
 
     async inscribirse(turnoId: string, userId: string, fecha: string): Promise<boolean> {
