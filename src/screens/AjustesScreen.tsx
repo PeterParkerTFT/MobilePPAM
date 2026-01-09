@@ -472,6 +472,7 @@ function MiPerfilView({ user, onLogout }: AjustesScreenProps) {
 import { CongregacionService } from '../services/CongregacionService';
 import { UserFilters, Congregacion, Sitio } from '../types/models';
 import { UserStatus } from '../types/enums';
+import { getEventColor } from '../constants/eventTypes';
 
 type TabType = 'congregaciones' | 'sitios' | 'usuarios';
 
@@ -1006,18 +1007,49 @@ function PanelGlobalView({ user, onLogout }: AjustesScreenProps) {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-xs font-medium text-gray-500 mb-1 block">Tipo</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Tipo de Lugar (Físico)
+                  </label>
                   <select
-                    className="w-full p-2.5 border rounded-lg focus:ring-2 focus:ring-[#594396] focus:border-transparent outline-none transition-all bg-white"
                     value={sitioForm.tipo}
-                    onChange={e => setSitioForm({ ...sitioForm, tipo: e.target.value })}
+                    onChange={(e) => setSitioForm({ ...sitioForm, tipo: e.target.value as any })}
+                    className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-[#594396] outline-none bg-white"
                   >
-                    <option value="Punto de Encuentro">Punto de Encuentro</option>
-                    <option value="Cartelera">Cartelera</option>
-                    <option value="expositores">PPAM (Expositores)</option>
+                    <option value="Punto de Encuentro">Punto de Encuentro Público</option>
+                    <option value="Cartelera">Cartelera / Exhibidor</option>
                     <option value="Casa Particular">Casa Particular</option>
+                    <option value="Salón">Salón / Auditorio</option>
+                    <option value="Otro">Otro</option>
                   </select>
+                  <p className="text-xs text-gray-400 mt-1">Describe la estructura física del lugar.</p>
                 </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Asignar a Evento (Categoría)
+                  </label>
+                  <select
+                    value={sitioForm.eventType}
+                    onChange={(e) => setSitioForm({ ...sitioForm, eventType: e.target.value })}
+                    className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-[#594396] outline-none bg-white"
+                  >
+                    <option value="expositores">PPAM (Expositores)</option>
+                    <option value="guias">Guías</option>
+                    <option value="escuelas">Escuelas</option>
+                    <option value="editoriales">Editoriales</option>
+                    <option value="encuestas">Encuestas</option>
+                    <option value="bodega">Bodega</option>
+                    <option value="construccion">Construcción</option>
+                    <option value="limpieza">Limpieza</option>
+                    <option value="mantenimiento">Mantenimiento</option>
+                    <option value="congreso">Congreso</option>
+                    <option value="hospitalidad">Hospitalidad</option>
+                  </select>
+                  <p className="text-xs text-brand-purple mt-1 font-medium">Esta ubicación solo será visible en el mapa de este evento.</p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs font-medium text-gray-500 mb-1 block">Congregación</label>
                   <select
@@ -1031,9 +1063,6 @@ function PanelGlobalView({ user, onLogout }: AjustesScreenProps) {
                     ))}
                   </select>
                 </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs font-medium text-gray-500 mb-1 block">Latitud</label>
                   <input
