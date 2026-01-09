@@ -94,7 +94,8 @@ export class TurnoService {
                 ubicacion: t.sitios.nombre,
                 coordenadas: t.sitios.coordenadas,
                 voluntariosInscritos: inscritosMap[t.id] || [],
-                cupoMaximo: cupoMax
+                cupoMaximo: cupoMax,
+                territorios: t.territorios // [NEW] Map territories
             } as unknown as TurnoSesion;
         });
     }
@@ -289,7 +290,8 @@ export class TurnoService {
         const { data, error } = await supabase
             .from('sitios')
             .select('*')
-            .eq('congregacion_id', congregacionId)
+            // Fetch sites for this congregation OR global sites (null congregation)
+            .or(`congregacion_id.eq.${congregacionId},congregacion_id.is.null`)
             .order('nombre');
 
         if (error) {
@@ -335,11 +337,12 @@ export class TurnoService {
             .from('turnos')
             .insert({
                 sitio_id: sitioId,
-                dia: new Date(turno.fecha).toLocaleDateString('es-ES', { weekday: 'long' }), // "Lunes", "Martes"...
+                dia: new Date(turno.fecha).toLocaleDateString('es-ES', { weekday: 'long' }),
                 horario_inicio: turno.horaInicio,
                 horario_fin: turno.horaFin,
                 voluntarios_max: turno.maxVoluntarios,
-                capitan_id: null // O el usuario que lo crea si es capitán
+                capitan_id: null,
+                territorios: turno.territorios // [NEW] Save territories
             });
 
         if (turnoError) {

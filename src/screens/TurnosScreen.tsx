@@ -297,6 +297,7 @@ export function TurnosScreen({ user, onLogout, turnos, capitanes, onInscripcion,
       {showAddModal && (
         <AddTurnoModal
           user={user}
+          initialEventType={selectedEvent} // [NEW] Pass context
           onClose={() => setShowAddModal(false)}
           onAdd={async (newTurnoData) => {
             try {

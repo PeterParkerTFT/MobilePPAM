@@ -151,6 +151,7 @@ export interface TurnoSesion extends TurnoBase {
   ubicacion?: string;
   coordenadas?: { lat: number; lng: number };
   grupoWhatsApp?: string;
+  territorios?: string; // [NEW] Optional territory or notes
 }
 
 // Alias para compatibilidad con componentes existentes
