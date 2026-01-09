@@ -1029,25 +1029,17 @@ function PanelGlobalView({ user, onLogout }: AjustesScreenProps) {
                     Event Type (Categoría del Sitio)
                   </label>
                   <select
-                    value={sitioForm.eventType}
+                    value={sitioForm.eventType || ''}
                     onChange={(e) => setSitioForm({ ...sitioForm, eventType: e.target.value })}
                     className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-[#594396] outline-none bg-white"
+                    required
                   >
-                    {/* Dynamic options from eventTypes constant */}
-                    <option value="expositores">PPAM (Expositores)</option> {/* Default/Priority */}
-                    <option value="predicacion">Predicación Pública</option>
-                    <option value="carrito">Testigo Público (Carrito)</option>
-                    <option value="guias">Guías</option>
-                    <option value="escuelas">Escuelas</option>
-                    <option value="editoriales">Editoriales</option>
-                    <option value="encuestas">Encuestas</option>
-                    <option value="bodega">Bodega</option>
-                    <option value="construccion">Construcción</option>
-                    <option value="limpieza">Limpieza</option>
-                    <option value="mantenimiento">Mantenimiento</option>
-                    <option value="congreso">Congreso</option>
-                    <option value="hospitalidad">Hospitalidad</option>
-                    <option value="eventos_especiales">Eventos Especiales</option>
+                    <option value="" disabled>Selecciona un tipo de evento...</option>
+                    {eventTypes.map((et) => (
+                      <option key={et.id} value={et.id}>
+                        {et.label}
+                      </option>
+                    ))}
                   </select>
                   <p className="text-xs text-brand-purple mt-1 font-medium">Define en qué mapa aparece este sitio.</p>
                 </div>
@@ -1103,69 +1095,72 @@ function PanelGlobalView({ user, onLogout }: AjustesScreenProps) {
             </div>
           </div>
         </div>
-      )}
+      )
+      }
 
       {/* User Modal */}
-      {showUserModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white w-full max-w-md rounded-2xl p-6 shadow-2xl animate-in zoom-in-95 duration-200">
-            <h3 className="text-xl font-bold mb-4 text-[#594396]">Editar Usuario</h3>
-            {editingUser && (
-              <p className="text-sm text-gray-500 mb-4">Editando a: <span className="font-semibold">{editingUser.nombre}</span></p>
-            )}
-            <div className="space-y-3">
-              <div>
-                <label className="text-xs font-medium text-gray-500 mb-1 block">Rol</label>
-                <select
-                  className="w-full p-2.5 border rounded-lg focus:ring-2 focus:ring-[#594396] focus:border-transparent outline-none transition-all bg-white"
-                  value={userForm.role}
-                  onChange={e => setUserForm({ ...userForm, role: e.target.value as UserRole })}
-                >
-                  <option value={UserRole.Voluntario}>Voluntario</option>
-                  <option value={UserRole.Capitan}>Capitán</option>
-                  <option value={UserRole.AdminLocal}>Admin Local</option>
-                </select>
+      {
+        showUserModal && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white w-full max-w-md rounded-2xl p-6 shadow-2xl animate-in zoom-in-95 duration-200">
+              <h3 className="text-xl font-bold mb-4 text-[#594396]">Editar Usuario</h3>
+              {editingUser && (
+                <p className="text-sm text-gray-500 mb-4">Editando a: <span className="font-semibold">{editingUser.nombre}</span></p>
+              )}
+              <div className="space-y-3">
+                <div>
+                  <label className="text-xs font-medium text-gray-500 mb-1 block">Rol</label>
+                  <select
+                    className="w-full p-2.5 border rounded-lg focus:ring-2 focus:ring-[#594396] focus:border-transparent outline-none transition-all bg-white"
+                    value={userForm.role}
+                    onChange={e => setUserForm({ ...userForm, role: e.target.value as UserRole })}
+                  >
+                    <option value={UserRole.Voluntario}>Voluntario</option>
+                    <option value={UserRole.Capitan}>Capitán</option>
+                    <option value={UserRole.AdminLocal}>Admin Local</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-gray-500 mb-1 block">Congregación</label>
+                  <select
+                    className="w-full p-2.5 border rounded-lg focus:ring-2 focus:ring-[#594396] focus:border-transparent outline-none transition-all bg-white"
+                    value={userForm.congregacion}
+                    onChange={e => setUserForm({ ...userForm, congregacion: e.target.value })}
+                  >
+                    <option value="">Sin Asignación</option>
+                    {congregacionesData.map(c => (
+                      <option key={c.id} value={c.id}>{c.nombre}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-gray-500 mb-1 block">Estado</label>
+                  <select
+                    className="w-full p-2.5 border rounded-lg focus:ring-2 focus:ring-[#594396] focus:border-transparent outline-none transition-all bg-white"
+                    value={userForm.status}
+                    onChange={e => setUserForm({ ...userForm, status: e.target.value as UserStatus })}
+                  >
+                    <option value={UserStatus.Pendiente}>Pendiente</option>
+                    <option value={UserStatus.Aprobado}>Aprobado</option>
+                    <option value={UserStatus.Rechazado}>Rechazado</option>
+                  </select>
+                </div>
               </div>
-              <div>
-                <label className="text-xs font-medium text-gray-500 mb-1 block">Congregación</label>
-                <select
-                  className="w-full p-2.5 border rounded-lg focus:ring-2 focus:ring-[#594396] focus:border-transparent outline-none transition-all bg-white"
-                  value={userForm.congregacion}
-                  onChange={e => setUserForm({ ...userForm, congregacion: e.target.value })}
+              <div className="flex gap-2 mt-6">
+                <button onClick={() => setShowUserModal(false)} className="flex-1 p-2.5 border border-gray-300 rounded-lg text-gray-700 font-medium hover:bg-gray-50 transition-colors">Cancelar</button>
+                <button
+                  onClick={handleSaveUser}
+                  disabled={isSaving}
+                  className="flex-1 p-2.5 bg-[#594396] text-white rounded-lg font-medium hover:opacity-90 transition-opacity disabled:opacity-50 flex justify-center items-center"
                 >
-                  <option value="">Sin Asignación</option>
-                  {congregacionesData.map(c => (
-                    <option key={c.id} value={c.id}>{c.nombre}</option>
-                  ))}
-                </select>
+                  {isSaving ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Guardar'}
+                </button>
               </div>
-              <div>
-                <label className="text-xs font-medium text-gray-500 mb-1 block">Estado</label>
-                <select
-                  className="w-full p-2.5 border rounded-lg focus:ring-2 focus:ring-[#594396] focus:border-transparent outline-none transition-all bg-white"
-                  value={userForm.status}
-                  onChange={e => setUserForm({ ...userForm, status: e.target.value as UserStatus })}
-                >
-                  <option value={UserStatus.Pendiente}>Pendiente</option>
-                  <option value={UserStatus.Aprobado}>Aprobado</option>
-                  <option value={UserStatus.Rechazado}>Rechazado</option>
-                </select>
-              </div>
-            </div>
-            <div className="flex gap-2 mt-6">
-              <button onClick={() => setShowUserModal(false)} className="flex-1 p-2.5 border border-gray-300 rounded-lg text-gray-700 font-medium hover:bg-gray-50 transition-colors">Cancelar</button>
-              <button
-                onClick={handleSaveUser}
-                disabled={isSaving}
-                className="flex-1 p-2.5 bg-[#594396] text-white rounded-lg font-medium hover:opacity-90 transition-opacity disabled:opacity-50 flex justify-center items-center"
-              >
-                {isSaving ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Guardar'}
-              </button>
             </div>
           </div>
-        </div>
-      )}
-    </div>
+        )
+      }
+    </div >
   );
 }
 

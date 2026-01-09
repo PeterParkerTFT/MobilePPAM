@@ -32,7 +32,21 @@ export function TurnosScreen({ user, onLogout, turnos, capitanes, onInscripcion,
   const colors = useThemeColors();
   const turnoService = new TurnoService();
 
-  const filteredTurnos = turnos.filter(turno => turno.tipo === selectedEvent);
+  const filteredTurnos = turnos.filter(turno => {
+    const isCorrectType = turno.tipo === selectedEvent;
+
+    // [HISTORY FIX] Filter by date based on toggle
+    const turnoDate = new Date(turno.fecha);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0); // Reset time for accurate date comparison
+    // Use yesterday 11:59PM as cutoff? Or strictly today.
+    // Logic: If !showPastTurnos, only show >= today.
+
+    const isPast = turnoDate < today;
+    if (!showPastTurnos && isPast) return false;
+
+    return isCorrectType;
+  });
 
   // Agrupar turnos por fecha
   const groupedTurnos = filteredTurnos.reduce((groups, turno) => {

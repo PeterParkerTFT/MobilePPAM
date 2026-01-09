@@ -29,14 +29,16 @@ export class TurnoService {
         const { data: turnosTemplates, error: turnosError } = await query;
         if (turnosError) throw turnosError;
 
-        // 2. Generar instancias para los próximos 7 días
-        const DAYS_TO_SHOW = 7;
+        // 2. Generar instancias para rango ampliado (Pasado y Futuro)
+        // [HISTORY FIX] Fetch past 30 days + next 7 days
+        const PAST_DAYS = 30;
+        const FUTURE_DAYS = 7;
         const upcomingTurnos: TurnoSesion[] = [];
         const today = new Date();
         const datesToCheck: string[] = [];
 
-        // Pre-calculate dates and maps
-        for (let i = 0; i < DAYS_TO_SHOW; i++) {
+        // Generate range: Today - 30 -> Today + 7
+        for (let i = -PAST_DAYS; i < FUTURE_DAYS; i++) {
             const date = new Date(today);
             date.setDate(today.getDate() + i);
             datesToCheck.push(date.toISOString().split('T')[0]);
