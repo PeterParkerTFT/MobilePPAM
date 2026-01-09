@@ -62,29 +62,30 @@ export function AddTurnoModal({ onClose, onAdd, user, initialEventType }: AddTur
     congregacionService.getAllSitios().then(setAvailableSitios);
   }, []);
 
-  // Filter sites logic - Strict but Fair
+  // Filter sites logic - robust fuzzy matching
   const filteredSitios = availableSitios.filter(s => {
-    // 1. If site has explicit event type, it MUST match
     if (s.eventType) {
-      return s.eventType === formData.tipo;
+      if (s.eventType === formData.tipo) return true;
+      const currentEvent = globalEventTypes.find(e => e.id === formData.tipo);
+      if (currentEvent) {
+        const normalize = (str: string) => str.toLowerCase().trim();
+        const siteType = normalize(s.eventType);
+        if (normalize(currentEvent.label).includes(siteType) || siteType.includes(normalize(currentEvent.label))) return true;
+        if (formData.tipo === 'expositores' && (siteType === 'ppam' || siteType.includes('expositor'))) return true;
+        if (formData.tipo === 'predicacion' && siteType.includes('publica')) return true;
+        if (formData.tipo === 'carrito' && siteType.includes('testigo')) return true;
+      }
+      return false;
     }
-
-    // 2. Handling Legacy/Generic Sites (event_type is null/undefined)
-    // If we are in specific strict events (like construction/maintenance), maybe we shouldn't show preaching spots?
-    // User requested "no me deberia sugerir si no es coherente".
-
-    // For PPAM/Expositores (or any other type):
-    // Strict logic REMOVED. New Logic: "Permissive / Legacy-First"
-
-    // If we are here, it means s.eventType was falsy (undefined/null).
-    // In a generic app update, we assume these are "Legacy Sites" or "Global Sites".
-    // We MUST show them to ensure backward compatibility.
-    // User complaint: "Old sites not showing". This fixes it.
-    return true;
-
-    // For others, allow generic
-    return true;
+    return true; // Show legacy sites
   });
+
+  // [UX IMPROVEMENT] Auto-switch to "Nuevo Sitio" if no saved sites match
+  useEffect(() => {
+    if (availableSitios.length > 0 && filteredSitios.length === 0) {
+      setUseSavedLocation(false);
+    }
+  }, [availableSitios.length, filteredSitios.length]);
 
   const handleSitioSelect = (sitioId: string) => {
     const sitio = availableSitios.find(s => s.id === sitioId);
