@@ -102,12 +102,36 @@ export function AddTurnoModal({ onClose, onAdd, user, initialEventType }: AddTur
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    let finalSitioId = formData.sitioId;
+
+    // Logic to save NEW site if created
+    if (!useSavedLocation && formData.ubicacion) {
+      try {
+        const newSitio = await congregacionService.createSitio({
+          nombre: formData.ubicacion,
+          direccion: '', // Optional
+          tipo: 'fijo', // [FIX] Use a valid type from the model (caminata | fijo) - 'Punto de Encuentro' was invalid
+          eventType: formData.tipo as any, // [FIX] Cast string to expected generic type
+          // We don't have coords from input unless we add logic, but coords are in formData.coordenadas
+          coordenadas: formData.coordenadas
+        });
+
+        if (newSitio) {
+          finalSitioId = newSitio.id;
+        }
+      } catch (error) {
+        console.error("Error saving new site automatically:", error);
+        // Continue anyway, just without linking a persistent site ID (fallback to string location)
+      }
+    }
 
     const newTurno: Turno = {
       id: Math.random().toString(36).substr(2, 9),
       ...formData,
+      sitioId: finalSitioId, // Use the newly created ID
       voluntarios: 0,
       coordinador: user.nombre,
       inscritos: []

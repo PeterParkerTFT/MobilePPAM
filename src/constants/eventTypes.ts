@@ -55,6 +55,62 @@ export const eventTypes: EventType[] = [
     icon: '📦',
     color: '236, 72, 153', // Rosa
     description: 'Gestión de bodega y suministros'
+  },
+  {
+    id: 'predicacion',
+    label: 'Predicación Pública',
+    icon: '📢',
+    color: '220, 38, 38', // Rojo
+    description: 'Predicación en lugares públicos'
+  },
+  {
+    id: 'carrito',
+    label: 'Testigo Público',
+    icon: '🛒',
+    color: '234, 179, 8', // Amarillo
+    description: 'Carritos de predicación'
+  },
+  {
+    id: 'construccion',
+    label: 'Construcción',
+    icon: '🏗️',
+    color: '124, 58, 237', // Violeta oscuro
+    description: 'Proyectos de construcción y mantenimiento mayor'
+  },
+  {
+    id: 'limpieza',
+    label: 'Limpieza',
+    icon: '🧹',
+    color: '6, 182, 212', // Cyan
+    description: 'Limpieza de instalaciones'
+  },
+  {
+    id: 'mantenimiento',
+    label: 'Mantenimiento',
+    icon: '🔧',
+    color: '75, 85, 99', // Gris
+    description: 'Mantenimiento regular'
+  },
+  {
+    id: 'congreso',
+    label: 'Congreso',
+    icon: '🏟️',
+    color: '59, 130, 246', // Azul
+    description: 'Organización de congresos'
+  },
+  {
+    id: 'hospitalidad',
+    label: 'Hospitalidad',
+    icon: '☕',
+    color: '236, 72, 153', // Rosa
+    description: 'Atención a visitantes y hospedaje'
+  },
+  {
+    id: 'eventos_especiales',
+    label: 'Eventos Especiales',
+    icon: '✨',
+    color: '249, 115, 22', // Naranja
+    description: 'Eventos no recurrentes'
   }
 ];
 
