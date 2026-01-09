@@ -11,6 +11,7 @@
 import React, { useState, useEffect } from 'react';
 import { User } from '../types/models';
 import { UserRole } from '../types/enums';
+import { eventTypes } from '../constants/eventTypes';
 import {
   Camera,
   User as UserIcon,
