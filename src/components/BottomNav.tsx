@@ -4,8 +4,8 @@ import { UserRole } from '../types';
 import { useThemeColors } from '../hooks/useThemeColors';
 
 interface BottomNavProps {
-  activeTab: 'turnos' | 'mis-turnos' | 'voluntarios' | 'aprobaciones' | 'ajustes' | 'informes' | 'ubicaciones';
-  onTabChange: (tab: 'turnos' | 'mis-turnos' | 'voluntarios' | 'aprobaciones' | 'ajustes' | 'informes' | 'ubicaciones') => void;
+  activeTab: 'turnos' | 'mis-turnos' | 'voluntarios' | 'aprobaciones' | 'ajustes' | 'informes';
+  onTabChange: (tab: 'turnos' | 'mis-turnos' | 'voluntarios' | 'aprobaciones' | 'ajustes' | 'informes') => void;
   userRole: UserRole;
 }
 
@@ -37,12 +37,7 @@ export function BottomNav({ activeTab, onTabChange, userRole }: BottomNavProps) 
       icon: UserCheck,
       allowedRoles: [UserRole.AdminLocal, UserRole.AdminGlobal]
     },
-    {
-      id: 'ubicaciones' as const,
-      label: 'Ubicaciones',
-      icon: Map,
-      allowedRoles: [UserRole.AdminLocal, UserRole.AdminGlobal, UserRole.Capitan, UserRole.Voluntario]
-    },
+    // Ubicaciones removed as per refactor plan
     {
       id: 'ajustes' as const,
       label: 'Ajustes',

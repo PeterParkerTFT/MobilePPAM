@@ -56,19 +56,11 @@ export function HeaderWithTheme({ title, showMenu, onMenuToggle, user, onLogout,
             }}
           >
             <div
-              className="px-3 py-2 border-b"
-              style={{ borderColor: `rgb(${colors.ui.border})` }}
+              className="px-3 py-3 border-b border-gray-100 dark:border-gray-800"
             >
+              <div className="font-semibold text-base">{user.nombre}</div>
               <div
-                className="text-xs"
-                style={{ color: `rgb(${colors.text.tertiary})` }}
-              >
-                Usuario
-              </div>
-              <div className="font-medium text-sm">{user.nombre}</div>
-              <div
-                className="text-xs capitalize mt-1"
-                style={{ color: `rgb(${colors.text.accent})` }}
+                className="text-xs uppercase tracking-wider font-medium mt-0.5 opacity-70"
               >
                 {user.role}
               </div>

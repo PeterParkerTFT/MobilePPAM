@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { EnumHelpers, UserRole } from '../types/enums';
 import { User, Turno, Capitan } from '../types/models';
-import { ChevronRight, MoreVertical, Plus } from 'lucide-react';
+import { ChevronRight, MoreVertical, Plus, MapPin } from 'lucide-react';
 import { HeaderWithTheme } from '../components/HeaderWithTheme';
 import { TurnoDetailModal } from '../components/TurnoDetailModal';
 import { AddTurnoModal } from '../components/AddTurnoModal';
+import { EventMapModal } from '../components/EventMapModal';
 import { TurnoService } from '../services/TurnoService';
 import { EventBadge } from '../components/EventBadge';
 import { eventTypes } from '../constants/eventTypes';
@@ -26,6 +27,7 @@ export function TurnosScreen({ user, onLogout, turnos, capitanes, onInscripcion,
   const [showMenu, setShowMenu] = useState(false);
   const [selectedTurno, setSelectedTurno] = useState<Turno | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [showMapModal, setShowMapModal] = useState(false);
   const colors = useThemeColors();
   const turnoService = new TurnoService();
 
@@ -180,15 +182,28 @@ export function TurnosScreen({ user, onLogout, turnos, capitanes, onInscripcion,
           >
             {eventTypes.find(e => e.id === selectedEvent)?.label}
           </h2>
-          <button
-            className="p-2 rounded-lg hover:opacity-70 transition-opacity"
-            style={{ backgroundColor: `rgba(${colors.bg.tertiary}, 0.5)` }}
-          >
-            <MoreVertical
-              className="w-5 h-5"
-              style={{ color: `rgb(${colors.text.secondary})` }}
-            />
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={() => setShowMapModal(true)}
+              className="px-3 py-1.5 rounded-lg flex items-center gap-1.5 hover:opacity-80 transition-opacity text-sm font-medium"
+              style={{
+                backgroundColor: `rgba(${colors.interactive.primary}, 0.1)`,
+                color: `rgb(${colors.interactive.primary})`
+              }}
+            >
+              <MapPin className="w-4 h-4" />
+              Ver Mapa
+            </button>
+            <button
+              className="p-2 rounded-lg hover:opacity-70 transition-opacity"
+              style={{ backgroundColor: `rgba(${colors.bg.tertiary}, 0.5)` }}
+            >
+              <MoreVertical
+                className="w-5 h-5"
+                style={{ color: `rgb(${colors.text.secondary})` }}
+              />
+            </button>
+          </div>
         </div>
 
         {/* Lista de Turnos Agrupados por Fecha */}
@@ -299,6 +314,15 @@ export function TurnosScreen({ user, onLogout, turnos, capitanes, onInscripcion,
               alert('Error al crear el turno');
             }
           }}
+        />
+      )}
+
+      {/* Modal de Mapa Contextual */}
+      {showMapModal && (
+        <EventMapModal
+          eventType={selectedEvent}
+          eventLabel={eventTypes.find(e => e.id === selectedEvent)?.label || 'Evento'}
+          onClose={() => setShowMapModal(false)}
         />
       )}
     </div>

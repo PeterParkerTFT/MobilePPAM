@@ -112,6 +112,7 @@ export interface Sitio {
   coordenadas?: { lat: number; lng: number }; // Changed from string to object
   tipo: 'caminata' | 'fijo';
   congregacionId: string;
+  eventType?: EventType; // [NEW] Link site to specific event type
 }
 
 /**
