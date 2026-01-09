@@ -99,6 +99,15 @@ function DraggableMarker({
     );
 }
 
+// [NEW] Helper to force map view update when props change
+function MapUpdater({ position }: { position: Location }) {
+    const map = useMapEvents({});
+    React.useEffect(() => {
+        map.setView(position, map.getZoom());
+    }, [position, map]);
+    return null;
+}
+
 export function LocationPicker({
     initialLocation = { lat: 19.4326, lng: -99.1332 }, // Default: CDMX (Center)
     onLocationSelect,
@@ -130,6 +139,7 @@ export function LocationPicker({
                     attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
                     url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                 />
+                <MapUpdater position={position} />
                 <DraggableMarker
                     position={position}
                     setPosition={handleSetPosition}
