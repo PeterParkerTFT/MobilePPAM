@@ -602,7 +602,7 @@ function PanelGlobalView({ user, onLogout }: AjustesScreenProps) {
       nombre: sitio.nombre,
       direccion: sitio.direccion || '',
       tipo: sitio.tipo,
-      congregacionId: sitio.congregacionId,
+      congregacionId: sitio.congregacionId || '',
       lat: sitio.coordenadas?.lat.toString() || '0',
       lng: sitio.coordenadas?.lng.toString() || '0',
       eventType: sitio.eventType || 'expositores'
