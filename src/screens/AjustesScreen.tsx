@@ -637,7 +637,7 @@ function PanelGlobalView({ user, onLogout }: AjustesScreenProps) {
           lat: parseFloat(sitioForm.lat || '0'),
           lng: parseFloat(sitioForm.lng || '0')
         },
-        event_type: sitioForm.eventType // [NEW] Save event type
+        eventType: sitioForm.eventType // [FIX] Use camelCase 'eventType' to match Sitio model, Service maps it to 'event_type'
       };
 
       if (editingSitio) {
