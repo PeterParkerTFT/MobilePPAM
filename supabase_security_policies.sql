@@ -5,22 +5,43 @@ ALTER TABLE sitios ENABLE ROW LEVEL SECURITY;
 ALTER TABLE turnos ENABLE ROW LEVEL SECURITY;
 ALTER TABLE turno_voluntarios ENABLE ROW LEVEL SECURITY;
 
+-- HELPER FUNCTIONS (To avoid infinite recursion)
+-- Defined in PUBLIC schema because users cannot create in AUTH schema
+CREATE OR REPLACE FUNCTION public.get_my_role()
+RETURNS text
+LANGUAGE sql
+SECURITY DEFINER
+SET search_path = public -- Secure search path
+AS $$
+  SELECT role FROM public.users WHERE id = auth.uid();
+$$;
+
+CREATE OR REPLACE FUNCTION public.get_my_congregation()
+RETURNS text
+LANGUAGE sql
+SECURITY DEFINER
+SET search_path = public -- Secure search path
+AS $$
+  SELECT congregacion FROM public.users WHERE id = auth.uid();
+$$;
+
 -- 1. USERS
 -- Users can view their own profile
+DROP POLICY IF EXISTS "Users can view own profile" ON users;
 CREATE POLICY "Users can view own profile" ON users
   FOR SELECT USING (auth.uid()::text = id::text);
 
 -- Users can view members of same congregation
+DROP POLICY IF EXISTS "Users can view members of same congregation" ON users;
 CREATE POLICY "Users can view members of same congregation" ON users
   FOR SELECT USING (
-    auth.uid()::text IN (
-      SELECT id::text FROM users WHERE congregacion::text = users.congregacion::text
-    )
+    congregacion::text = public.get_my_congregation()::text
     OR 
-    exists (select 1 from users where id::text = auth.uid()::text and role = 'ultraadmin')
+    public.get_my_role() = 'ADMIN_GLOBAL'
   );
 
 -- Users can update their own profile
+DROP POLICY IF EXISTS "Users can update own profile" ON users;
 CREATE POLICY "Users can update own profile" ON users
   FOR UPDATE USING (auth.uid()::text = id::text);
 
@@ -32,7 +53,7 @@ CREATE POLICY "Congregaciones are viewable by everyone" ON congregaciones
 -- Only admins can insert/update/delete
 CREATE POLICY "Ultra Admins can manage congregaciones" ON congregaciones
   FOR ALL USING (
-    exists (select 1 from users where id::text = auth.uid()::text and role = 'ultraadmin')
+    public.get_my_role() = 'ADMIN_GLOBAL'
   );
 
 -- 3. SITIOS
@@ -43,36 +64,34 @@ CREATE POLICY "Sitios are viewable by everyone" ON sitios
 -- Writable only by Admins/Captains of that congregation or Ultra Admin
 CREATE POLICY "Admins/Captains can manage sitios of their congregation" ON sitios
   FOR ALL USING (
-    exists (
-      select 1 from users 
-      where id::text = auth.uid()::text 
-      and (role = 'admin' OR role = 'capitan' OR role = 'ultraadmin')
-      and (congregacion::text = sitios.congregacion_id::text OR role = 'ultraadmin')
+    (
+      (public.get_my_role() IN ('ADMIN_LOCAL', 'CAPITAN', 'ADMIN_GLOBAL'))
+      AND 
+      (congregacion_id::text = public.get_my_congregation()::text)
     )
+    OR
+    public.get_my_role() = 'ADMIN_GLOBAL'
   );
 
 -- 4. TURNOS
--- View turnos of own congregation
+-- View turnos of own congregation OR global admins
 CREATE POLICY "View turnos of own congregation" ON turnos
   FOR SELECT USING (
     exists (
       select 1 from sitios
-      join users on users.congregacion::text = sitios.congregacion_id::text
       where sitios.id = turnos.sitio_id
-      and users.id::text = auth.uid()::text
+      and (
+        sitios.congregacion_id::text = public.get_my_congregation()::text
+        OR
+        public.get_my_role() = 'ADMIN_GLOBAL'
+      )
     )
-    OR
-    exists (select 1 from users where id::text = auth.uid()::text and role = 'ultraadmin')
   );
 
 -- Captains/Admins manage turnos
 CREATE POLICY "Captains/Admins manage turnos" ON turnos
   FOR ALL USING (
-    exists (
-      select 1 from users 
-      where id::text = auth.uid()::text 
-      and (role = 'admin' OR role = 'capitan' OR role = 'ultraadmin')
-    )
+    public.get_my_role() IN ('ADMIN_LOCAL', 'CAPITAN', 'ADMIN_GLOBAL')
   );
 
 -- 5. TURNO_VOLUNTARIOS (Inscripciones)
@@ -86,10 +105,13 @@ CREATE POLICY "Admins view assignments" ON turno_voluntarios
     exists (
       select 1 from turnos
       join sitios on sitios.id = turnos.sitio_id
-      join users on users.congregacion::text = sitios.congregacion_id::text
       where turnos.id = turno_voluntarios.turno_id
-      and users.id::text = auth.uid()::text
-      and (users.role = 'admin' OR users.role = 'capitan' OR users.role = 'ultraadmin')
+      and (
+        sitios.congregacion_id::text = public.get_my_congregation()::text
+        OR
+        public.get_my_role() = 'ADMIN_GLOBAL'
+      )
+      and public.get_my_role() IN ('ADMIN_LOCAL', 'CAPITAN', 'ADMIN_GLOBAL')
     )
   );
 
