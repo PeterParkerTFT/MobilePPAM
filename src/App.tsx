@@ -11,7 +11,6 @@ import { VoluntariosScreen } from './screens/VoluntariosScreen';
 import { AprobacionesScreen } from './screens/AprobacionesScreen';
 import { InformesScreen } from './screens/InformesScreen';
 import { AjustesScreen } from './screens/AjustesScreen';
-import { UbicacionesScreen } from './screens/UbicacionesScreen';
 import { BottomNav } from './components/BottomNav';
 import { User, TurnoSesion, Capitan } from './types/models'; // Updated to TurnoSesion
 import { UserRole, EnumHelpers } from './types/enums';
@@ -25,7 +24,7 @@ const congregacionService = new CongregacionService();
 
 function AppContent() {
   const { currentUser, login, logout } = useUser();
-  const [activeTab, setActiveTab] = useState<'turnos' | 'mis-turnos' | 'voluntarios' | 'aprobaciones' | 'ajustes' | 'informes' | 'ubicaciones'>('turnos');
+  const [activeTab, setActiveTab] = useState<'turnos' | 'mis-turnos' | 'voluntarios' | 'aprobaciones' | 'ajustes' | 'informes'>('turnos');
 
   // State for real data
   const [turnos, setTurnos] = useState<TurnoSesion[]>([]); // Use TurnoSesion
@@ -175,9 +174,6 @@ function AppContent() {
             user={currentUser}
             onLogout={handleLogout}
           />
-        )}
-        {activeTab === 'ubicaciones' && (
-          <UbicacionesScreen />
         )}
         {activeTab === 'ajustes' && (
           <AjustesScreen
