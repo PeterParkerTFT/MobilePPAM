@@ -1014,7 +1014,7 @@ function PanelGlobalView({ user, onLogout }: AjustesScreenProps) {
                   >
                     <option value="Punto de Encuentro">Punto de Encuentro</option>
                     <option value="Cartelera">Cartelera</option>
-                    <option value="Negocio">Negocio</option>
+                    <option value="expositores">PPAM (Expositores)</option>
                     <option value="Casa Particular">Casa Particular</option>
                   </select>
                 </div>

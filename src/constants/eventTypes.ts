@@ -13,12 +13,12 @@ export interface EventType {
 
 export const eventTypes: EventType[] = [
   {
-    id: 'expositores',
-    label: 'Expositores',
+    id: 'expositores', // Keeping ID for compatibility
+    label: 'PPAM',
     icon: '🎤',
-    image: carritoImg, // Usando imagen de carrito como ejemplo
-    color: '139, 92, 246', // Violeta
-    description: 'Expositor en stand de testificación pública'
+    image: carritoImg,
+    color: '139, 92, 246',
+    description: 'Puntos de encuentro, calendario y gestión de cupos'
   },
   {
     id: 'guias',
