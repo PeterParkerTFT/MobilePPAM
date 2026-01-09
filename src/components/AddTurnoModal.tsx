@@ -267,6 +267,20 @@ export function AddTurnoModal({ onClose, onAdd, user, initialEventType }: AddTur
                     </div>
                   </div>
 
+                  {/* [UX] Map Preview for Saved Site */}
+                  {formData.sitioId && formData.coordenadas && (
+                    <div className="mt-4 rounded-xl overflow-hidden shadow-sm border border-gray-200 ring-4 ring-white">
+                      <LocationPicker
+                        onLocationSelect={() => { }} // Read-only: no-op
+                        initialLocation={formData.coordenadas}
+                        height="150px"
+                      />
+                      <p className="text-xs text-center text-gray-400 bg-gray-50 py-1 border-t border-gray-100">
+                        Previsualización de ubicación guardada
+                      </p>
+                    </div>
+                  )}
+
                   {filteredSitios.length === 0 && (
                     <p className="text-xs text-amber-600 mt-2 bg-amber-50 p-2 rounded-lg border border-amber-100">
                       No se encontraron sitios guardados específicos para {currentEventLabel}. Puedes crear uno nuevo.

@@ -85,7 +85,8 @@ export class TurnoService {
                 estado: estado,
 
                 // Compatibilidad con interfaz vieja 'Turno'
-                tipo: t.sitios.tipo || 'fijo',
+                // [FIX] Prioritize new event_type for correct filtering
+                tipo: t.sitios.event_type || t.sitios.tipo || 'fijo',
                 titulo: t.sitios.nombre,
                 descripcion: `Turno de ${t.dia}`,
                 horaInicio: t.horario_inicio.substring(0, 5),
