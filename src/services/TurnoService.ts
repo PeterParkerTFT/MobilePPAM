@@ -315,7 +315,8 @@ export class TurnoService {
                 .insert({
                     nombre: turno.ubicacion || 'Ubicación Personalizada',
                     direccion: turno.ubicacion,
-                    tipo: turno.tipo,
+                    tipo: 'fijo', // Default legacy type
+                    event_type: turno.tipo, // [NEW] Save specific event type
                     congregacion_id: congregacionId,
                     coordenadas: turno.coordenadas ? { lat: turno.coordenadas.lat, lng: turno.coordenadas.lng } : null
                 })
