@@ -111,7 +111,7 @@ export interface Sitio {
   direccion?: string;
   coordenadas?: { lat: number; lng: number }; // Changed from string to object
   tipo: 'caminata' | 'fijo';
-  congregacionId: string;
+  congregacionId?: string; // [MOD] Now optional
   eventType?: EventType; // [NEW] Link site to specific event type
 }
 

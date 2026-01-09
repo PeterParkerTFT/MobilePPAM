@@ -625,7 +625,7 @@ function PanelGlobalView({ user, onLogout }: AjustesScreenProps) {
   };
 
   const handleSaveSitio = async () => {
-    if (!sitioForm.nombre || !sitioForm.direccion || !sitioForm.congregacionId) return alert('Nombre, dirección y congregación son obligatorios');
+    if (!sitioForm.nombre || !sitioForm.direccion) return alert('Nombre y dirección son obligatorios');
     setIsSaving(true);
     try {
       const payload: any = {
@@ -1051,13 +1051,13 @@ function PanelGlobalView({ user, onLogout }: AjustesScreenProps) {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-xs font-medium text-gray-500 mb-1 block">Congregación</label>
+                  <label className="text-xs font-medium text-gray-500 mb-1 block">Congregación (Opcional)</label>
                   <select
                     className="w-full p-2.5 border rounded-lg focus:ring-2 focus:ring-[#594396] focus:border-transparent outline-none transition-all bg-white"
                     value={sitioForm.congregacionId}
                     onChange={e => setSitioForm({ ...sitioForm, congregacionId: e.target.value })}
                   >
-                    <option value="">Selecciona...</option>
+                    <option value="">-- Sin Asignación / Global --</option>
                     {congregacionesData.map(c => (
                       <option key={c.id} value={c.id}>{c.nombre}</option>
                     ))}

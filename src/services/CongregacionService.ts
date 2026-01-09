@@ -155,9 +155,9 @@ export class CongregacionService {
             .insert({
                 nombre: sitio.nombre,
                 direccion: sitio.direccion,
-                tipo: 'fijo', // Always map to legacy 'fijo' for DB check constraint or safety
-                event_type: sitio.eventType, // [NEW] Save event type
-                congregacion_id: sitio.congregacionId,
+                tipo: 'fijo',
+                event_type: sitio.eventType,
+                congregacion_id: sitio.congregacionId || null, // Allow null
                 coordenadas: sitio.coordenadas
             })
             .select()
@@ -186,8 +186,8 @@ export class CongregacionService {
         if (sitio.nombre) updates.nombre = sitio.nombre;
         if (sitio.direccion) updates.direccion = sitio.direccion;
         if (sitio.tipo) updates.tipo = sitio.tipo;
-        if (sitio.congregacionId) updates.congregacion_id = sitio.congregacionId;
-        if (sitio.eventType) updates.event_type = sitio.eventType; // [NEW] Update event type
+        if (sitio.congregacionId !== undefined) updates.congregacion_id = sitio.congregacionId || null; // Allow clearing it
+        if (sitio.eventType) updates.event_type = sitio.eventType;
         if (sitio.coordenadas) updates.coordenadas = sitio.coordenadas;
 
         const { data, error } = await supabase

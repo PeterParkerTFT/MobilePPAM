@@ -69,12 +69,13 @@ export function EventMapModal({ eventType, eventLabel, onClose, congregacionId }
                 ) : (
                     <SharedMapComponent
                         markers={sitios
-                            .filter(s => s.coordenadas)
+                            .filter(s => s.coordenadas && typeof s.coordenadas.lat === 'number' && typeof s.coordenadas.lng === 'number')
                             .map(s => ({
                                 id: s.id,
                                 position: [s.coordenadas!.lat, s.coordenadas!.lng],
                                 title: s.nombre,
-                                description: s.direccion
+                                description: s.direccion,
+                                color: s.eventType // Pass event type (or mapped color) if SharedMapComponent handles it, or let it default
                             }))}
                         height="100%"
                     />
