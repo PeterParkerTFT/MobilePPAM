@@ -49,7 +49,8 @@ export class CongregacionService {
             direccion: item.direccion,
             coordenadas: item.coordenadas,
             tipo: item.tipo,
-            congregacionId: item.congregacion_id
+            congregacionId: item.congregacion_id,
+            eventType: item.event_type // [NEW] Map from DB
         }));
     }
 
@@ -69,7 +70,8 @@ export class CongregacionService {
             direccion: item.direccion,
             coordenadas: item.coordenadas,
             tipo: item.tipo,
-            congregacionId: item.congregacion_id
+            congregacionId: item.congregacion_id,
+            eventType: item.event_type // [NEW] Map from DB
         }));
     }
 
@@ -153,7 +155,8 @@ export class CongregacionService {
             .insert({
                 nombre: sitio.nombre,
                 direccion: sitio.direccion,
-                tipo: sitio.tipo,
+                tipo: 'fijo', // Always map to legacy 'fijo' for DB check constraint or safety
+                event_type: sitio.eventType, // [NEW] Save event type
                 congregacion_id: sitio.congregacionId,
                 coordenadas: sitio.coordenadas
             })
@@ -171,7 +174,8 @@ export class CongregacionService {
             direccion: data.direccion,
             coordenadas: data.coordenadas,
             tipo: data.tipo,
-            congregacionId: data.congregacion_id
+            congregacionId: data.congregacion_id,
+            eventType: data.event_type // [NEW] Check return
         };
     }
 
@@ -183,6 +187,7 @@ export class CongregacionService {
         if (sitio.direccion) updates.direccion = sitio.direccion;
         if (sitio.tipo) updates.tipo = sitio.tipo;
         if (sitio.congregacionId) updates.congregacion_id = sitio.congregacionId;
+        if (sitio.eventType) updates.event_type = sitio.eventType; // [NEW] Update event type
         if (sitio.coordenadas) updates.coordenadas = sitio.coordenadas;
 
         const { data, error } = await supabase
@@ -203,7 +208,8 @@ export class CongregacionService {
             direccion: data.direccion,
             coordenadas: data.coordenadas,
             tipo: data.tipo,
-            congregacionId: data.congregacion_id
+            congregacionId: data.congregacion_id,
+            eventType: data.event_type
         };
     }
 
