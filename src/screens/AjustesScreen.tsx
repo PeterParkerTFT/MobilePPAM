@@ -625,7 +625,7 @@ function PanelGlobalView({ user, onLogout }: AjustesScreenProps) {
   };
 
   const handleSaveSitio = async () => {
-    if (!sitioForm.nombre || !sitioForm.direccion) return alert('Nombre y dirección son obligatorios');
+    if (!sitioForm.nombre) return alert('El nombre es obligatorio');
     setIsSaving(true);
     try {
       const payload: any = {
@@ -996,7 +996,7 @@ function PanelGlobalView({ user, onLogout }: AjustesScreenProps) {
                 />
               </div>
               <div>
-                <label className="text-xs font-medium text-gray-500 mb-1 block">Dirección</label>
+                <label className="text-xs font-medium text-gray-500 mb-1 block">Dirección (Opcional)</label>
                 <input
                   className="w-full p-2.5 border rounded-lg focus:ring-2 focus:ring-[#594396] focus:border-transparent outline-none transition-all"
                   placeholder="Dirección completa"
