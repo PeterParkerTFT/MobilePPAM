@@ -1,6 +1,7 @@
 import { supabase } from '../lib/supabase';
 import { TurnoSesion, TurnoBase, ReporteTurno } from '../types/models';
 import { UserRole } from '../types/enums';
+import { eventTypes } from '../constants/eventTypes';
 
 export class TurnoService {
     /**
