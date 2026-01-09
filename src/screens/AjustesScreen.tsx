@@ -509,7 +509,8 @@ function PanelGlobalView({ user, onLogout }: AjustesScreenProps) {
     tipo: 'Punto de Encuentro',
     congregacionId: '',
     lat: '',
-    lng: ''
+    lng: '',
+    eventType: 'expositores' // Default
   });
 
   // Saving State
@@ -602,7 +603,8 @@ function PanelGlobalView({ user, onLogout }: AjustesScreenProps) {
       tipo: sitio.tipo,
       congregacionId: sitio.congregacionId,
       lat: sitio.coordenadas?.lat.toString() || '0',
-      lng: sitio.coordenadas?.lng.toString() || '0'
+      lng: sitio.coordenadas?.lng.toString() || '0',
+      eventType: sitio.eventType || 'expositores'
     });
     setShowSitioModal(true);
   };
@@ -615,7 +617,8 @@ function PanelGlobalView({ user, onLogout }: AjustesScreenProps) {
       tipo: 'Punto de Encuentro',
       congregacionId: congregacionesData[0]?.id || '',
       lat: '0',
-      lng: '0'
+      lng: '0',
+      eventType: 'expositores'
     });
     setShowSitioModal(true);
   };
@@ -632,7 +635,8 @@ function PanelGlobalView({ user, onLogout }: AjustesScreenProps) {
         coordenadas: {
           lat: parseFloat(sitioForm.lat || '0'),
           lng: parseFloat(sitioForm.lng || '0')
-        }
+        },
+        event_type: sitioForm.eventType // [NEW] Save event type
       };
 
       if (editingSitio) {
