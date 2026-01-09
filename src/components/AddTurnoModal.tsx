@@ -73,16 +73,14 @@ export function AddTurnoModal({ onClose, onAdd, user, initialEventType }: AddTur
     // If we are in specific strict events (like construction/maintenance), maybe we shouldn't show preaching spots?
     // User requested "no me deberia sugerir si no es coherente".
 
-    // For PPAM/Expositores:
-    if (formData.tipo === 'expositores') {
-      const type = (s.tipo || '').toLowerCase();
-      // Allow legacy/generic types typical for PPAM
-      return type === 'caminata' ||
-        type === 'fijo' ||
-        type === 'punto de encuentro' ||
-        type === 'cartelera' ||
-        !s.tipo;
-    }
+    // For PPAM/Expositores (or any other type):
+    // Strict logic REMOVED. New Logic: "Permissive / Legacy-First"
+
+    // If we are here, it means s.eventType was falsy (undefined/null).
+    // In a generic app update, we assume these are "Legacy Sites" or "Global Sites".
+    // We MUST show them to ensure backward compatibility.
+    // User complaint: "Old sites not showing". This fixes it.
+    return true;
 
     // For others, allow generic
     return true;
