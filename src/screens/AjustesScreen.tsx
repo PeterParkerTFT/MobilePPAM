@@ -506,6 +506,67 @@ function PanelGlobalView({ user, onLogout }: AjustesScreenProps) {
 
   const [statusFilter, setStatusFilter] = useState<UserStatus | 'all'>('all');
 
+  const [isLoading, setIsLoading] = useState(false);
+  const [usersData, setUsersData] = useState<User[]>([]);
+  const [congregacionesData, setCongregacionesData] = useState<Congregacion[]>([]);
+  const [sitiosData, setSitiosData] = useState<Sitio[]>([]);
+
+  // Modal States
+  const [showCongregacionModal, setShowCongregacionModal] = useState(false);
+  const [editingCongregacion, setEditingCongregacion] = useState<Congregacion | null>(null);
+
+  // User Modal State
+  const [showUserModal, setShowUserModal] = useState(false);
+  const [editingUser, setEditingUser] = useState<User | null>(null);
+  const [userForm, setUserForm] = useState({
+    role: UserRole.Voluntario,
+    congregacion: '',
+    status: UserStatus.Pendiente
+  });
+  const [congForm, setCongForm] = useState({ nombre: '', circuito: '', ciudad: '' });
+
+  const [showSitioModal, setShowSitioModal] = useState(false);
+  const [editingSitio, setEditingSitio] = useState<Sitio | null>(null);
+  const [sitioForm, setSitioForm] = useState({
+    nombre: '',
+    direccion: '',
+    tipo: 'Punto de Encuentro',
+    congregacionId: '',
+    lat: '',
+    lng: '',
+    eventType: 'expositores' // Default
+  });
+
+  // Saving State
+  const [isSaving, setIsSaving] = useState(false);
+
+  // Instance service (memoized or static)
+  const congregacionService = new CongregacionService();
+
+  useEffect(() => {
+    loadData();
+  }, [activeTab]);
+
+  const loadData = async () => {
+    setIsLoading(true);
+    try {
+      if (activeTab === 'congregaciones') {
+        const data = await congregacionService.findAll();
+        setCongregacionesData(data);
+      } else if (activeTab === 'sitios') {
+        const data = await congregacionService.getAllSitios();
+        setSitiosData(data);
+      } else if (activeTab === 'usuarios') {
+        const data = await userService.searchUsers({}, user); // Fetch all users (Global Admin)
+        setUsersData(data);
+      }
+    } catch (error) {
+      console.error('Error loading data:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   // Filtrar usuarios
   const usuariosFiltrados = usersData.filter(u => {
     const matchSearch = u.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
