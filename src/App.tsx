@@ -18,6 +18,7 @@ import { UserRole, EnumHelpers } from './types/enums';
 import { TurnoService } from './services/TurnoService'; // [NEW]
 import { CongregacionService } from './services/CongregacionService'; // [NEW]
 import { PendingActionsModal } from './components/PendingActionsModal'; // [NEW]
+import { PendingApprovalScreen } from './screens/PendingApprovalScreen'; // [NEW]
 import { UserStatus } from './types/enums';
 
 
@@ -134,6 +135,20 @@ function AppContent() {
 
   if (!currentUser) {
     return <LoginScreen onLogin={handleLogin} />;
+  }
+
+  // [SECURITY] Block access if user is not approved
+  // We explicitly check for 'PENDIENTE' status.
+  // Admins might bypass this check if they are "PENDING" but that shouldn't happen normally.
+  if (currentUser.status === UserStatus.Pendiente && !EnumHelpers.isAdmin(currentUser.role)) {
+    return <PendingApprovalScreen user={currentUser} onLogout={handleLogout} />;
+  }
+
+  // Also block REJECTED users?
+  if (currentUser.status === UserStatus.Rechazado && !EnumHelpers.isAdmin(currentUser.role)) {
+    // Reuse pending screen or show a specific "Contact Admin" screen
+    // For now, let's treat it as Pending for simplicity, or add a Rejected variant.
+    return <PendingApprovalScreen user={currentUser} onLogout={handleLogout} />;
   }
 
   return (
