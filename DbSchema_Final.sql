@@ -11,7 +11,10 @@ ALTER TABLE sitios ADD COLUMN IF NOT EXISTS event_type text;
 -- 4. Support for Captain Assignment
 ALTER TABLE turnos ADD COLUMN IF NOT EXISTS capitan_id uuid references auth.users(id);
 
--- 4. Notifications Table (Fixes 404 Error)
+-- 5. Support for User Denormalization
+ALTER TABLE users ADD COLUMN IF NOT EXISTS congregacion_nombre text;
+
+-- 6. Notifications Table (Fixes 404 Error)
 create table if not exists public.notificaciones (
   id uuid default gen_random_uuid() primary key,
   created_at timestamp with time zone default timezone('utc'::text, now()) not null,

@@ -419,7 +419,7 @@ function MiPerfilView({ user, onLogout }: AjustesScreenProps) {
                   className="font-semibold text-lg"
                   style={{ color: `rgb(${colors.text.primary})` }}
                 >
-                  {getCongregacionNombre(user.congregacion)}
+                  {user.congregacionNombre || getCongregacionNombre(user.congregacion)}
                 </span>
               </div>
               {user.role === UserRole.AdminGlobal && (
@@ -691,7 +691,14 @@ function PanelGlobalView({ user, onLogout }: AjustesScreenProps) {
     if (!editingUser) return;
     setIsSaving(true);
     try {
-      const updatedUser = await userService.update(editingUser.id, userForm);
+      // [FIX] Find congregation name to denormalize
+      const selectedCong = congregacionesData.find(c => c.id === userForm.congregacion);
+      const payload = {
+        ...userForm,
+        congregacionNombre: selectedCong ? selectedCong.nombre : ''
+      };
+
+      const updatedUser = await userService.update(editingUser.id, payload);
 
       // [FIX]: If we updated ourself, update local context immediately
       if (editingUser.id === user.id) {
