@@ -409,4 +409,20 @@ export class TurnoService {
 
         return true;
     }
+
+    /**
+     * Helper para normalizar tipos legacy a tipos nuevos.
+     */
+    private normalizeLegacyType(type: string | undefined): string {
+        if (!type) return 'fijo';
+        const t = type.toLowerCase();
+
+        // Mapeo explicito de legacy a nuevo
+        if (t === 'ppam') return 'expositores';
+        if (t === 'testigo público' || t.includes('testigo')) return 'carrito';
+        if (t === 'predicación pública' || t.includes('predicaci')) return 'predicacion';
+
+        // Si ya es un ID válido (ej: 'expositores'), lo deja pasar
+        return t;
+    }
 }
