@@ -1,5 +1,5 @@
 import { supabase } from '../lib/supabase';
-import { TurnoSesion, TurnoBase, ReporteTurno } from '../types/models';
+import { TurnoSesion, TurnoBase, ReporteTurno, User } from '../types/models';
 import { UserRole } from '../types/enums';
 import { eventTypes } from '../constants/eventTypes';
 
@@ -473,5 +473,63 @@ export class TurnoService {
 
         // Si ya es un ID válido (ej: 'expositores'), lo deja pasar
         return t;
+    }
+    /**
+     * Obtiene la lista de voluntarios inscritos en un turno específico (fecha e ID).
+     */
+    async getVolunteersForTurn(turnoId: string, fecha: string): Promise<User[]> {
+        if (!supabase) throw new Error('Supabase no configurado');
+
+        // Join con users para obtener nombres y roles
+        const { data, error } = await supabase
+            .from('turno_voluntarios')
+            .select(`
+                user_id,
+                users (
+                    id,
+                    nombre,
+                    email,
+                    role,
+                    congregacion,
+                    congregacion_nombre
+                )
+            `)
+            .eq('turno_id', turnoId)
+            .eq('fecha', fecha);
+
+        if (error) {
+            console.error('Error fetching volunteers:', error);
+            return [];
+        }
+
+        // Mapear resultado a objetos User
+        return data.map((item: any) => ({
+            id: item.users.id,
+            nombre: item.users.nombre,
+            email: item.users.email,
+            role: item.users.role,
+            congregacion: item.users.congregacion,
+            congregacionNombre: item.users.congregacion_nombre
+        } as User));
+    }
+
+    /**
+     * Elimina a un voluntario de un turno (Desasignar).
+     */
+    async removeVolunteer(turnoId: string, userId: string, fecha: string): Promise<boolean> {
+        if (!supabase) throw new Error('Supabase no configurado');
+
+        const { error } = await supabase
+            .from('turno_voluntarios')
+            .delete()
+            .eq('turno_id', turnoId)
+            .eq('user_id', userId)
+            .eq('fecha', fecha);
+
+        if (error) {
+            console.error('Error removing volunteer:', error);
+            return false;
+        }
+        return true;
     }
 }

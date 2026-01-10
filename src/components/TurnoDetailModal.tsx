@@ -25,6 +25,39 @@ export function TurnoDetailModal({ turno, user, onClose, onInscribirse, onTurnoU
 
   const [showUserPicker, setShowUserPicker] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [volunteers, setVolunteers] = useState<User[]>([]);
+
+  // Fetch volunteers on mount
+  React.useEffect(() => {
+    const fetchVolunteers = async () => {
+      const turnoService = new TurnoService();
+      // Ensure we use the instance-specific date (fecha prop from TurnoSesion)
+      if (turno.fecha) {
+        const vols = await turnoService.getVolunteersForTurn(turno.id, turno.fecha as string);
+        setVolunteers(vols);
+      }
+    };
+    fetchVolunteers();
+  }, [turno.id, turno.fecha]);
+
+  const handleRemoveVolunteer = async (userId: string, userName: string) => {
+    if (!confirm(`¿Desasignar a ${userName} de este turno?`)) return;
+
+    try {
+      const turnoService = new TurnoService();
+      const success = await turnoService.removeVolunteer(turno.id, userId, turno.fecha as string);
+      if (success) {
+        // Refresh local list and parent
+        setVolunteers(prev => prev.filter(v => v.id !== userId));
+        if (onTurnoUpdated) onTurnoUpdated();
+      } else {
+        alert('No se pudo desasignar al voluntario.');
+      }
+    } catch (e) {
+      console.error(e);
+      alert('Error al desasignar.');
+    }
+  };
 
   // Permission Check
   // Admins are Global or Local. Coordinators are Captains. 
@@ -174,6 +207,61 @@ export function TurnoDetailModal({ turno, user, onClose, onInscribirse, onTurnoU
             >
               {turno.descripcion}
             </p>
+          </div>
+
+          {/* Lista de Voluntarios (Admin/Capitán + Info Pública) */}
+          <div>
+            <h3
+              className="font-medium mb-3"
+              style={{ color: `rgb(${colors.text.primary})` }}
+            >
+              Voluntarios Inscritos
+            </h3>
+            <div className="space-y-2">
+              {volunteers.length === 0 ? (
+                <div className="text-sm text-gray-400 italic">No hay voluntarios inscritos aún.</div>
+              ) : (
+                volunteers.map((vol) => (
+                  <div
+                    key={vol.id}
+                    className="flex items-center justify-between p-3 rounded-lg border theme-transition"
+                    style={{
+                      borderColor: `rgb(${colors.ui.divider})`,
+                      backgroundColor: `rgb(${colors.bg.tertiary})`
+                    }}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold
+                        ${vol.role === UserRole.AdminGlobal ? 'bg-purple-100 text-purple-600' :
+                          vol.role === UserRole.Capitan ? 'bg-blue-100 text-blue-600' :
+                            'bg-gray-100 text-gray-600'}`}
+                      >
+                        {vol.nombre.charAt(0).toUpperCase()}
+                      </div>
+                      <div>
+                        <div className="text-sm font-medium" style={{ color: `rgb(${colors.text.primary})` }}>
+                          {vol.nombre}
+                        </div>
+                        <div className="text-xs" style={{ color: `rgb(${colors.text.tertiary})` }}>
+                          {EnumHelpers.getRoleLabel(vol.role)}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Remove Button (Only for Managers) */}
+                    {canManage && (
+                      <button
+                        onClick={() => handleRemoveVolunteer(vol.id, vol.nombre)}
+                        className="p-1.5 hover:bg-red-50 text-gray-400 hover:text-red-500 rounded-lg transition-colors"
+                        title="Desasignar voluntario"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    )}
+                  </div>
+                ))
+              )}
+            </div>
           </div>
 
           {/* Detalles del Turno */}
