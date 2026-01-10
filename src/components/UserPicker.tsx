@@ -66,7 +66,8 @@ export function UserPicker({ onClose, onSelect, title = "Seleccionar Capitán" }
                         <input
                             type="text"
                             placeholder="Buscar capitán..."
-                            className="w-full pl-14 pr-4 py-3 rounded-xl text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all border border-transparent focus:border-blue-500"
+                            className="w-full pl-12 pr-4 py-3 rounded-xl text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all border border-transparent focus:border-blue-500"
+                            style={{ paddingLeft: '3.5rem' }}
                             value={query}
                             onChange={e => setQuery(e.target.value)}
                             autoFocus
