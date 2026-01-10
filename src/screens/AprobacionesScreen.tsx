@@ -33,7 +33,13 @@ export function AprobacionesScreen({ user, onLogout, onNavigateToInformes, onNav
     setIsLoading(true);
     setError(null);
     try {
-      const data = await userService.fetchPendingUsers(user);
+      let data = await userService.fetchPendingUsers(user);
+
+      // [SECURITY] Local Admins only see their congregation
+      if (user.role === UserRole.AdminLocal && user.congregacion) {
+        data = data.filter(u => u.congregacion === user.congregacion);
+      }
+
       setSolicitudes(data);
     } catch (err) {
       console.error('Error loading pending users:', err);
@@ -146,7 +152,7 @@ export function AprobacionesScreen({ user, onLogout, onNavigateToInformes, onNav
             ) : (
               <>
                 <Building2 className="w-3.5 h-3.5" strokeWidth={2} />
-                {getCongregacionNombre(user.congregacion || '')}
+                {getCongregacionNombre(user.congregacion || '')} (Solo Local)
               </>
             )}
           </div>

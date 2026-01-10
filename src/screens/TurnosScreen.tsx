@@ -8,6 +8,7 @@ import { AddTurnoModal } from '../components/AddTurnoModal';
 import { EventMapModal } from '../components/EventMapModal';
 import { TurnoService } from '../services/TurnoService';
 import { EventBadge } from '../components/EventBadge';
+import { TurnoCard } from '../components/TurnoCard'; // [NEW] Shared Component
 import { eventTypes } from '../constants/eventTypes';
 import { useThemeColors } from '../hooks/useThemeColors';
 
@@ -267,46 +268,17 @@ export function TurnosScreen({ user, onLogout, turnos, capitanes, onInscripcion,
               {/* Lista de turnos para esta fecha */}
               <div className="space-y-3">
                 {groupedTurnos[fecha].map((turno) => {
-                  const isInscrito = turno.voluntariosInscritos.includes(user.id);
+                  const isInscrito = turno.voluntariosInscritos?.includes(user.id);
 
                   return (
-                    <div
+                    <TurnoCard
                       key={`${turno.id}-${turno.fecha}`}
-                      id={filteredTurnos.indexOf(turno) === 0 ? 'tour-turno-card' : undefined}
+                      turno={turno}
+                      userRole={user.role}
                       onClick={() => setSelectedTurnoKey({ id: turno.id, fecha: turno.fecha as string })}
-                      className="rounded-lg p-3 flex items-center gap-3 cursor-pointer hover:opacity-90 transition-all theme-transition"
-                      style={{
-                        backgroundColor: `rgb(${colors.bg.secondary})`,
-                        boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
-                        border: `1px solid rgb(${colors.ui.border})`
-                      }}
-                    >
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1">
-                          <EventBadge tipo={turno.tipo || 'fijo'} variant="compact" showImage />
-                          {isInscrito && (
-                            <span className="text-green-500 text-sm">✓</span>
-                          )}
-                        </div>
-                        <div
-                          className="text-sm font-semibold mb-1"
-                          style={{ color: `rgb(${colors.text.primary})` }}
-                        >
-                          {formatDateTitle(turno.fecha)}
-                        </div>
-                        <div
-                          className="text-xs"
-                          style={{ color: `rgb(${colors.text.secondary})` }}
-                        >
-                          {turno.horaInicio} → {turno.horaFin} · Voluntarios: {turno.cupoActual}/{turno.cupoMaximo}
-                        </div>
-                      </div>
-
-                      <ChevronRight
-                        className="w-5 h-5 flex-shrink-0"
-                        style={{ color: `rgb(${colors.text.tertiary})` }}
-                      />
-                    </div>
+                      isInscrito={isInscrito}
+                      showDateTitle={true}
+                    />
                   );
                 })}
               </div>

@@ -4,6 +4,7 @@ import { UserStatus } from '../types/enums';
 import { HeaderWithTheme } from '../components/HeaderWithTheme';
 import { useThemeColors } from '../hooks/useThemeColors';
 import { EventBadge } from '../components/EventBadge';
+import { TurnoCard } from '../components/TurnoCard'; // [NEW] Shared Component
 import { TurnoDetailModal } from '../components/TurnoDetailModal';
 import { Clock, MapPin, Users, Calendar, Search, CheckCircle } from 'lucide-react';
 
@@ -396,84 +397,36 @@ export function TurnosScreenCapitan({
             )}
 
             {turnosDisponiblesParaCapitan.length > 0 ? (
-              <div className="space-y-3">
-                {turnosDisponiblesParaCapitan.map(turno => (
-                  <div
-                    key={turno.id}
-                    className="rounded-xl p-4 shadow-md theme-transition"
-                    style={{
-                      backgroundColor: `rgb(${colors.bg.secondary})`,
-                      border: `1px solid rgb(${colors.ui.border})`
-                    }}
-                  >
-                    {/* Header */}
-                    <div className="flex items-start justify-between mb-3">
-                      <div className="flex-1">
-                        <div
-                          className="text-xs font-semibold mb-1"
-                          style={{ color: `rgb(${colors.text.secondary})` }}
-                        >
-                          {formatDate(turno.fecha)}
-                        </div>
-                        <EventBadge tipo={turno.tipo || 'evento'} variant="default" />
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Clock
-                          className="w-4 h-4"
-                          style={{ color: `rgb(${colors.text.tertiary})` }}
-                        />
-                        <span
-                          className="text-sm font-medium"
-                          style={{ color: `rgb(${colors.text.primary})` }}
-                        >
-                          {turno.horaInicio} - {turno.horaFin}
-                        </span>
+              <div className="space-y-6">
+                {/* Group by Date Logic Inline or Pre-calc */}
+                {(() => {
+                  const groupedDisponibles = turnosDisponiblesParaCapitan.reduce((acc, turno) => {
+                    if (!acc[turno.fecha]) acc[turno.fecha] = [];
+                    acc[turno.fecha].push(turno);
+                    return acc;
+                  }, {} as Record<string, Turno[]>);
+                  const sortedDatesCap = Object.keys(groupedDisponibles).sort((a, b) => new Date(a).getTime() - new Date(b).getTime());
+
+                  return sortedDatesCap.map(fecha => (
+                    <div key={fecha}>
+                      <h3 className="font-medium mb-3 pl-1" style={{ color: `rgb(${colors.text.primary})` }}>
+                        {formatDate(fecha)}
+                      </h3>
+                      <div className="space-y-3">
+                        {groupedDisponibles[fecha].map(turno => (
+                          <TurnoCard
+                            key={turno.id}
+                            turno={turno}
+                            userRole={user.role}
+                            onClick={() => setSelectedTurno(turno)}
+                            showDateTitle={false}
+                            isCaptainAssigned={false}
+                          />
+                        ))}
                       </div>
                     </div>
-
-                    {/* Ubicación */}
-                    <div className="flex items-start gap-2 mb-3">
-                      <MapPin
-                        className="w-4 h-4 flex-shrink-0 mt-0.5"
-                        style={{ color: `rgb(${colors.text.tertiary})` }}
-                      />
-                      <span
-                        className="text-sm"
-                        style={{ color: `rgb(${colors.text.secondary})` }}
-                      >
-                        {turno.ubicacion}
-                      </span>
-                    </div>
-
-                    {/* Descripción */}
-                    <p
-                      className="text-xs mb-3"
-                      style={{ color: `rgb(${colors.text.secondary})` }}
-                    >
-                      {turno.descripcion}
-                    </p>
-
-                    {/* Botón Postularse */}
-                    <button
-                      onClick={() => handlePostularseComoCapitan(turno.id)}
-                      disabled={user.status === UserStatus.Pendiente}
-                      className="w-full py-2.5 rounded-lg font-medium text-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                      style={{
-                        backgroundColor: user.status === UserStatus.Pendiente
-                          ? `rgb(${colors.bg.tertiary})`
-                          : `rgb(${colors.interactive.primary})`
-                        ,
-                        color: user.status === UserStatus.Pendiente
-                          ? `rgb(${colors.text.tertiary})`
-                          : '#ffffff'
-                      }}
-                    >
-                      {user.status === UserStatus.Pendiente
-                        ? 'Cuenta Pendiente de Aprobación'
-                        : 'Postularme como Capitán'}
-                    </button>
-                  </div>
-                ))}
+                  ));
+                })()}
               </div>
             ) : (
               <div className="text-center py-12">
