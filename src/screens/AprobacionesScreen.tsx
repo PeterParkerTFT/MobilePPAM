@@ -11,9 +11,10 @@ interface AprobacionesScreenProps {
   user: User;
   onLogout: () => void;
   onNavigateToInformes?: () => void;
+  onNavigateToPendientes?: () => void;
 }
 
-export function AprobacionesScreen({ user, onLogout, onNavigateToInformes }: AprobacionesScreenProps) {
+export function AprobacionesScreen({ user, onLogout, onNavigateToInformes, onNavigateToPendientes }: AprobacionesScreenProps) {
   const { userService } = useUser();
   const [showMenu, setShowMenu] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -122,6 +123,7 @@ export function AprobacionesScreen({ user, onLogout, onNavigateToInformes }: Apr
         user={user}
         onLogout={onLogout}
         onNavigateToInformes={onNavigateToInformes}
+        onNavigateToPendientes={onNavigateToPendientes}
       />
 
       <div className="px-4 py-4">

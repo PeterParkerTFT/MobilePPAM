@@ -12,9 +12,11 @@ const turnoService = new TurnoService();
 interface InformesScreenProps {
   user: User;
   onLogout: () => void;
+  onNavigateToInformes?: () => void;
+  onNavigateToPendientes?: () => void;
 }
 
-export function InformesScreen({ user, onLogout }: InformesScreenProps) {
+export function InformesScreen({ user, onLogout, onNavigateToInformes, onNavigateToPendientes }: InformesScreenProps) {
   const [showMenu, setShowMenu] = useState(false);
   const [activeTab, setActiveTab] = useState<'pendientes' | 'realizados' | 'experiencias'>('pendientes');
   const [selectedInforme, setSelectedInforme] = useState<ReporteTurno | null>(null);
@@ -141,6 +143,8 @@ export function InformesScreen({ user, onLogout }: InformesScreenProps) {
         onMenuToggle={() => setShowMenu(!showMenu)}
         user={user}
         onLogout={onLogout}
+        onNavigateToInformes={onNavigateToInformes}
+        onNavigateToPendientes={onNavigateToPendientes}
       />
 
       <div className="px-4 py-4">

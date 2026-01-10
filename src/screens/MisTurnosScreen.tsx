@@ -14,9 +14,10 @@ interface MisTurnosScreenProps {
   onLogout: () => void;
   turnos: Turno[];
   onNavigateToInformes?: () => void; // Nueva prop
+  onNavigateToPendientes?: () => void;
 }
 
-export function MisTurnosScreen({ user, onLogout, turnos, onNavigateToInformes }: MisTurnosScreenProps) {
+export function MisTurnosScreen({ user, onLogout, turnos, onNavigateToInformes, onNavigateToPendientes }: MisTurnosScreenProps) {
   const [showMenu, setShowMenu] = useState(false);
   const [selectedTurno, setSelectedTurno] = useState<Turno | null>(null);
   const colors = useThemeColors();
@@ -59,6 +60,7 @@ export function MisTurnosScreen({ user, onLogout, turnos, onNavigateToInformes }
         showMenu={showMenu}
         onMenuToggle={() => setShowMenu(!showMenu)}
         onNavigateToInformes={onNavigateToInformes}
+        onNavigateToPendientes={onNavigateToPendientes}
       />
 
       <div className="px-4 py-6">

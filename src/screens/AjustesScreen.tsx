@@ -44,6 +44,7 @@ interface AjustesScreenProps {
   onLogout: () => void;
   initialStatusFilter?: UserStatus | 'all';
   onNavigateToPendientes?: () => void;
+  onNavigateToInformes?: () => void;
 }
 
 // Helper para compatibilidad con tipos legacy
@@ -1263,7 +1264,7 @@ function PanelGlobalView({ user, onLogout, initialStatusFilter = 'all' }: Ajuste
 // COMPONENTE PRINCIPAL CON LÓGICA CONDICIONAL
 // ==========================================
 
-export function AjustesScreen({ user, onLogout, initialStatusFilter, onNavigateToPendientes }: AjustesScreenProps) {
+export function AjustesScreen({ user, onLogout, initialStatusFilter, onNavigateToPendientes, onNavigateToInformes }: AjustesScreenProps) {
   const [showMenu, setShowMenu] = useState(false);
   const colors = useThemeColors();
 
@@ -1283,6 +1284,7 @@ export function AjustesScreen({ user, onLogout, initialStatusFilter, onNavigateT
         user={user}
         onLogout={onLogout}
         onNavigateToPendientes={onNavigateToPendientes}
+        onNavigateToInformes={onNavigateToInformes}
       />
 
       {/* Renderizado condicional según rol */}

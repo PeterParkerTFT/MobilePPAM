@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { User, Turno, Capitan } from '../types/models';
+import { UserStatus } from '../types/enums';
 import { HeaderWithTheme } from '../components/HeaderWithTheme';
 import { useThemeColors } from '../hooks/useThemeColors';
 import { EventBadge } from '../components/EventBadge';
@@ -13,17 +14,19 @@ interface TurnosScreenCapitanProps {
   capitanes: Capitan[];
   onInscripcion: (turnoId: string, userId: string) => void;
   onNavigateToInformes?: () => void; // Nueva prop
+  onNavigateToPendientes?: () => void;
 }
 
 type TabType = 'mis-eventos' | 'disponibles';
 
-export function TurnosScreenCapitan({ 
-  user, 
-  onLogout, 
+export function TurnosScreenCapitan({
+  user,
+  onLogout,
   turnos,
   capitanes,
   onInscripcion,
-  onNavigateToInformes
+  onNavigateToInformes,
+  onNavigateToPendientes
 }: TurnosScreenCapitanProps) {
   const [showMenu, setShowMenu] = useState(false);
   const [selectedTurno, setSelectedTurno] = useState<Turno | null>(null);
@@ -31,14 +34,14 @@ export function TurnosScreenCapitan({
   const colors = useThemeColors();
 
   // Filtrar solo los turnos donde este capitán está asignado
-  const misTurnosComoCapitan = turnos.filter(t => 
-    t.capitanId === user.id || 
+  const misTurnosComoCapitan = turnos.filter(t =>
+    t.capitanId === user.id ||
     capitanes.find(c => c.id === user.id && c.turnosAsignados.includes(t.id))
   );
 
   // Turnos que necesitan capitán (disponibles para postularse)
-  const turnosDisponiblesParaCapitan = turnos.filter(t => 
-    t.necesitaCapitan || t.capitanId === null || t.capitanId === ''
+  const turnosDisponiblesParaCapitan = turnos.filter(t =>
+    !t.capitanId // Use existence check instead of missing property
   );
 
   // Agrupar por fecha
@@ -66,11 +69,11 @@ export function TurnosScreenCapitan({
   };
 
   const totalVoluntariosInscritos = misTurnosComoCapitan.reduce(
-    (sum, t) => sum + t.cupoActual, 
+    (sum, t) => sum + t.cupoActual,
     0
   );
   const totalCupo = misTurnosComoCapitan.reduce(
-    (sum, t) => sum + t.cupoMaximo, 
+    (sum, t) => sum + (t.cupoMaximo || t.voluntariosMax || 0),
     0
   );
 
@@ -81,7 +84,7 @@ export function TurnosScreenCapitan({
   };
 
   return (
-    <div 
+    <div
       className="min-h-screen pb-24 theme-transition"
       style={{ backgroundColor: `rgb(${colors.bg.primary})` }}
     >
@@ -93,41 +96,42 @@ export function TurnosScreenCapitan({
         user={user}
         onLogout={onLogout}
         onNavigateToInformes={onNavigateToInformes}
+        onNavigateToPendientes={onNavigateToPendientes}
       />
 
       <div className="px-4 py-4">
         {/* Estadísticas del Capitán */}
-        <div 
+        <div
           className="rounded-xl p-4 mb-4 shadow-md theme-transition"
-          style={{ 
+          style={{
             backgroundColor: `rgb(${colors.bg.secondary})`,
             border: `1px solid rgb(${colors.ui.border})`
           }}
         >
           <div className="flex items-center gap-3 mb-3">
-            <div 
+            <div
               className="w-12 h-12 rounded-full flex items-center justify-center text-white text-xl font-semibold"
               style={{ backgroundColor: `rgb(${colors.interactive.primary})` }}
             >
               {user.nombre.charAt(0)}
             </div>
             <div>
-              <h2 
+              <h2
                 className="font-semibold"
                 style={{ color: `rgb(${colors.text.primary})` }}
               >
                 {user.nombre}
               </h2>
-              <p 
+              <p
                 className="text-xs flex items-center gap-1"
                 style={{ color: `rgb(${colors.text.secondary})` }}
               >
-                {user.status === 'aprobado' ? (
+                {user.status === UserStatus.Aprobado ? (
                   <>
                     <CheckCircle className="w-3 h-3 text-green-500" />
                     Capitán Aprobado
                   </>
-                ) : user.status === 'pendiente' ? (
+                ) : user.status === UserStatus.Pendiente ? (
                   <>
                     <Clock className="w-3 h-3 text-orange-500" />
                     Pendiente de Aprobación
@@ -141,43 +145,43 @@ export function TurnosScreenCapitan({
 
           <div className="grid grid-cols-3 gap-3 mt-4">
             <div className="text-center">
-              <div 
+              <div
                 className="text-2xl font-bold mb-1"
                 style={{ color: `rgb(${colors.interactive.primary})` }}
               >
                 {misTurnosComoCapitan.length}
               </div>
-              <div 
+              <div
                 className="text-xs"
                 style={{ color: `rgb(${colors.text.secondary})` }}
               >
                 Eventos
               </div>
             </div>
-            
+
             <div className="text-center">
-              <div 
+              <div
                 className="text-2xl font-bold mb-1"
                 style={{ color: `rgb(${colors.interactive.primary})` }}
               >
                 {totalVoluntariosInscritos}
               </div>
-              <div 
+              <div
                 className="text-xs"
                 style={{ color: `rgb(${colors.text.secondary})` }}
               >
                 Inscritos
               </div>
             </div>
-            
+
             <div className="text-center">
-              <div 
+              <div
                 className="text-2xl font-bold mb-1"
                 style={{ color: `rgb(${colors.interactive.primary})` }}
               >
                 {totalCupo - totalVoluntariosInscritos}
               </div>
-              <div 
+              <div
                 className="text-xs"
                 style={{ color: `rgb(${colors.text.secondary})` }}
               >
@@ -193,32 +197,32 @@ export function TurnosScreenCapitan({
             onClick={() => setActiveTab('mis-eventos')}
             className="flex-1 py-2.5 px-4 rounded-lg font-medium text-sm transition-all"
             style={{
-              backgroundColor: activeTab === 'mis-eventos' 
-                ? `rgb(${colors.interactive.primary})` 
+              backgroundColor: activeTab === 'mis-eventos'
+                ? `rgb(${colors.interactive.primary})`
                 : `rgb(${colors.bg.tertiary})`,
-              color: activeTab === 'mis-eventos' 
-                ? '#ffffff' 
+              color: activeTab === 'mis-eventos'
+                ? '#ffffff'
                 : `rgb(${colors.text.primary})`,
-              border: activeTab === 'mis-eventos' 
-                ? `2px solid rgb(${colors.interactive.primary})` 
+              border: activeTab === 'mis-eventos'
+                ? `2px solid rgb(${colors.interactive.primary})`
                 : `1px solid rgb(${colors.ui.border})`
             }}
           >
             Mis Eventos ({misTurnosComoCapitan.length})
           </button>
-          
+
           <button
             onClick={() => setActiveTab('disponibles')}
             className="flex-1 py-2.5 px-4 rounded-lg font-medium text-sm transition-all flex items-center justify-center gap-2"
             style={{
-              backgroundColor: activeTab === 'disponibles' 
-                ? `rgb(${colors.interactive.primary})` 
+              backgroundColor: activeTab === 'disponibles'
+                ? `rgb(${colors.interactive.primary})`
                 : `rgb(${colors.bg.tertiary})`,
-              color: activeTab === 'disponibles' 
-                ? '#ffffff' 
+              color: activeTab === 'disponibles'
+                ? '#ffffff'
                 : `rgb(${colors.text.primary})`,
-              border: activeTab === 'disponibles' 
-                ? `2px solid rgb(${colors.interactive.primary})` 
+              border: activeTab === 'disponibles'
+                ? `2px solid rgb(${colors.interactive.primary})`
                 : `1px solid rgb(${colors.ui.border})`
             }}
           >
@@ -236,11 +240,11 @@ export function TurnosScreenCapitan({
                   <div key={fecha}>
                     {/* Header de Fecha */}
                     <div className="flex items-center gap-2 mb-3">
-                      <Calendar 
+                      <Calendar
                         className="w-5 h-5"
                         style={{ color: `rgb(${colors.interactive.primary})` }}
                       />
-                      <h3 
+                      <h3
                         className="font-semibold text-lg"
                         style={{ color: `rgb(${colors.text.primary})` }}
                       >
@@ -255,21 +259,21 @@ export function TurnosScreenCapitan({
                           key={turno.id}
                           onClick={() => setSelectedTurno(turno)}
                           className="rounded-xl p-4 cursor-pointer hover:opacity-90 transition-all shadow-md theme-transition"
-                          style={{ 
+                          style={{
                             backgroundColor: `rgb(${colors.bg.secondary})`,
                             border: `1px solid rgb(${colors.ui.border})`
                           }}
                         >
                           {/* Header con tipo y horario */}
                           <div className="flex items-start justify-between mb-3">
-                            <EventBadge tipo={turno.tipo} size="md" />
+                            <EventBadge tipo={turno.tipo || 'evento'} variant="default" />
                             <div className="text-right">
                               <div className="flex items-center gap-2">
-                                <Clock 
-                                  className="w-4 h-4" 
+                                <Clock
+                                  className="w-4 h-4"
                                   style={{ color: `rgb(${colors.text.tertiary})` }}
                                 />
-                                <span 
+                                <span
                                   className="text-sm font-medium"
                                   style={{ color: `rgb(${colors.text.primary})` }}
                                 >
@@ -281,11 +285,11 @@ export function TurnosScreenCapitan({
 
                           {/* Ubicación */}
                           <div className="flex items-start gap-2 mb-3">
-                            <MapPin 
-                              className="w-4 h-4 flex-shrink-0 mt-0.5" 
+                            <MapPin
+                              className="w-4 h-4 flex-shrink-0 mt-0.5"
                               style={{ color: `rgb(${colors.text.tertiary})` }}
                             />
-                            <span 
+                            <span
                               className="text-sm"
                               style={{ color: `rgb(${colors.text.secondary})` }}
                             >
@@ -297,39 +301,39 @@ export function TurnosScreenCapitan({
                           <div>
                             <div className="flex items-center justify-between mb-2">
                               <div className="flex items-center gap-2">
-                                <Users 
-                                  className="w-4 h-4" 
+                                <Users
+                                  className="w-4 h-4"
                                   style={{ color: getCupoColor(turno) }}
                                 />
-                                <span 
+                                <span
                                   className="text-sm font-semibold"
                                   style={{ color: `rgb(${colors.text.primary})` }}
                                 >
-                                  {turno.cupoActual}/{turno.cupoMaximo} voluntarios
+                                  {turno.cupoActual}/{turno.cupoMaximo || turno.voluntariosMax || 0} voluntarios
                                 </span>
                               </div>
-                              
-                              <span 
+
+                              <span
                                 className="text-xs font-semibold px-2 py-1 rounded-full"
-                                style={{ 
+                                style={{
                                   backgroundColor: `${getCupoColor(turno)}20`,
                                   color: getCupoColor(turno)
                                 }}
                               >
-                                {turno.estado === 'completo' ? '✓ COMPLETO' : 
-                                 turno.estado === 'limitado' ? '⚠ LIMITADO' : '⚡ NECESITA'}
+                                {turno.estado === 'completo' ? '✓ COMPLETO' :
+                                  turno.estado === 'limitado' ? '⚠ LIMITADO' : '⚡ NECESITA'}
                               </span>
                             </div>
 
                             {/* Barra de progreso */}
-                            <div 
+                            <div
                               className="w-full h-2 rounded-full overflow-hidden"
                               style={{ backgroundColor: `rgb(${colors.bg.tertiary})` }}
                             >
-                              <div 
+                              <div
                                 className="h-full rounded-full transition-all"
-                                style={{ 
-                                  width: `${(turno.cupoActual / turno.cupoMaximo) * 100}%`,
+                                style={{
+                                  width: `${(turno.cupoActual / (turno.cupoMaximo || turno.voluntariosMax || 1)) * 100}%`,
                                   backgroundColor: getCupoColor(turno)
                                 }}
                               />
@@ -344,13 +348,13 @@ export function TurnosScreenCapitan({
             ) : (
               <div className="text-center py-12">
                 <div className="text-6xl mb-3">📋</div>
-                <h3 
+                <h3
                   className="font-semibold mb-2"
                   style={{ color: `rgb(${colors.text.primary})` }}
                 >
                   No tienes eventos asignados
                 </h3>
-                <p 
+                <p
                   className="text-sm mb-4"
                   style={{ color: `rgb(${colors.text.secondary})` }}
                 >
@@ -371,10 +375,10 @@ export function TurnosScreenCapitan({
         {/* PESTAÑA: TURNOS DISPONIBLES */}
         {activeTab === 'disponibles' && (
           <>
-            {user.status === 'pendiente' && (
-              <div 
+            {user.status === UserStatus.Pendiente && (
+              <div
                 className="rounded-xl p-4 mb-4 flex items-start gap-3 theme-transition"
-                style={{ 
+                style={{
                   backgroundColor: 'rgba(251, 191, 36, 0.1)',
                   border: '1px solid rgba(251, 191, 36, 0.3)'
                 }}
@@ -397,7 +401,7 @@ export function TurnosScreenCapitan({
                   <div
                     key={turno.id}
                     className="rounded-xl p-4 shadow-md theme-transition"
-                    style={{ 
+                    style={{
                       backgroundColor: `rgb(${colors.bg.secondary})`,
                       border: `1px solid rgb(${colors.ui.border})`
                     }}
@@ -405,20 +409,20 @@ export function TurnosScreenCapitan({
                     {/* Header */}
                     <div className="flex items-start justify-between mb-3">
                       <div className="flex-1">
-                        <div 
+                        <div
                           className="text-xs font-semibold mb-1"
                           style={{ color: `rgb(${colors.text.secondary})` }}
                         >
                           {formatDate(turno.fecha)}
                         </div>
-                        <EventBadge tipo={turno.tipo} size="md" />
+                        <EventBadge tipo={turno.tipo || 'evento'} variant="default" />
                       </div>
                       <div className="flex items-center gap-2">
-                        <Clock 
-                          className="w-4 h-4" 
+                        <Clock
+                          className="w-4 h-4"
                           style={{ color: `rgb(${colors.text.tertiary})` }}
                         />
-                        <span 
+                        <span
                           className="text-sm font-medium"
                           style={{ color: `rgb(${colors.text.primary})` }}
                         >
@@ -429,11 +433,11 @@ export function TurnosScreenCapitan({
 
                     {/* Ubicación */}
                     <div className="flex items-start gap-2 mb-3">
-                      <MapPin 
-                        className="w-4 h-4 flex-shrink-0 mt-0.5" 
+                      <MapPin
+                        className="w-4 h-4 flex-shrink-0 mt-0.5"
                         style={{ color: `rgb(${colors.text.tertiary})` }}
                       />
-                      <span 
+                      <span
                         className="text-sm"
                         style={{ color: `rgb(${colors.text.secondary})` }}
                       >
@@ -442,7 +446,7 @@ export function TurnosScreenCapitan({
                     </div>
 
                     {/* Descripción */}
-                    <p 
+                    <p
                       className="text-xs mb-3"
                       style={{ color: `rgb(${colors.text.secondary})` }}
                     >
@@ -452,19 +456,20 @@ export function TurnosScreenCapitan({
                     {/* Botón Postularse */}
                     <button
                       onClick={() => handlePostularseComoCapitan(turno.id)}
-                      disabled={user.status === 'pendiente'}
+                      disabled={user.status === UserStatus.Pendiente}
                       className="w-full py-2.5 rounded-lg font-medium text-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                      style={{ 
-                        backgroundColor: user.status === 'pendiente' 
-                          ? `rgb(${colors.bg.tertiary})` 
-                          : `rgb(${colors.interactive.primary})`,
-                        color: user.status === 'pendiente' 
-                          ? `rgb(${colors.text.tertiary})` 
+                      style={{
+                        backgroundColor: user.status === UserStatus.Pendiente
+                          ? `rgb(${colors.bg.tertiary})`
+                          : `rgb(${colors.interactive.primary})`
+                        ,
+                        color: user.status === UserStatus.Pendiente
+                          ? `rgb(${colors.text.tertiary})`
                           : '#ffffff'
                       }}
                     >
-                      {user.status === 'pendiente' 
-                        ? 'Cuenta Pendiente de Aprobación' 
+                      {user.status === UserStatus.Pendiente
+                        ? 'Cuenta Pendiente de Aprobación'
                         : 'Postularme como Capitán'}
                     </button>
                   </div>
@@ -473,13 +478,13 @@ export function TurnosScreenCapitan({
             ) : (
               <div className="text-center py-12">
                 <div className="text-6xl mb-3">✅</div>
-                <h3 
+                <h3
                   className="font-semibold mb-2"
                   style={{ color: `rgb(${colors.text.primary})` }}
                 >
                   No hay turnos disponibles
                 </h3>
-                <p 
+                <p
                   className="text-sm"
                   style={{ color: `rgb(${colors.text.secondary})` }}
                 >
@@ -495,14 +500,14 @@ export function TurnosScreenCapitan({
       {selectedTurno && (
         <TurnoDetailModal
           turno={selectedTurno}
+          user={user}
           onClose={() => setSelectedTurno(null)}
-          onInscribir={() => {
+          onInscribirse={() => {
             if (user) {
               onInscripcion(selectedTurno.id, user.id);
               setSelectedTurno(null);
             }
           }}
-          userRole={user.role}
         />
       )}
     </div>

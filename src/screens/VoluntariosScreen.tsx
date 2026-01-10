@@ -14,6 +14,7 @@ interface VoluntariosScreenProps {
   user: User;
   onLogout: () => void;
   onNavigateToInformes?: () => void;
+  onNavigateToPendientes?: () => void;
   onRoleChange?: (userId: string, newRole: UserRole) => void;
   turnos?: Turno[]; // Opcional por ahora para compatibilidad, pero debería ser requerido
 }
@@ -43,7 +44,7 @@ const mockVoluntarios: Voluntario[] = [];
 
 type FilterType = 'all' | 'conAsignacion' | 'sinAsignacion' | 'sinInforme';
 
-export function VoluntariosScreen({ user, onLogout, onNavigateToInformes, onRoleChange, turnos = [] }: VoluntariosScreenProps) {
+export function VoluntariosScreen({ user, onLogout, onNavigateToInformes, onNavigateToPendientes, onRoleChange, turnos = [] }: VoluntariosScreenProps) {
   const { userService } = useUser();
   const [searchTerm, setSearchTerm] = useState('');
   const [showMenu, setShowMenu] = useState(false);
@@ -240,6 +241,7 @@ export function VoluntariosScreen({ user, onLogout, onNavigateToInformes, onRole
         user={user}
         onLogout={onLogout}
         onNavigateToInformes={onNavigateToInformes}
+        onNavigateToPendientes={onNavigateToPendientes}
       />
 
       <div className="px-4 py-4">

@@ -157,6 +157,7 @@ function AppContent() {
                 capitanes={capitanes}
                 onInscripcion={handleInscripcion}
                 onNavigateToInformes={() => setActiveTab('informes')}
+                onNavigateToPendientes={handleOpenPendingModal}
               />
             )}
             {currentUser.role === UserRole.Voluntario && (
@@ -166,6 +167,7 @@ function AppContent() {
                 turnos={turnos}
                 onInscripcion={handleInscripcion}
                 onNavigateToInformes={() => setActiveTab('informes')}
+                onNavigateToPendientes={handleOpenPendingModal}
               />
             )}
           </>
@@ -176,6 +178,7 @@ function AppContent() {
             onLogout={handleLogout}
             turnos={turnos}
             onNavigateToInformes={() => setActiveTab('informes')}
+            onNavigateToPendientes={handleOpenPendingModal}
           />
         )}
         {activeTab === 'voluntarios' && (
@@ -183,6 +186,7 @@ function AppContent() {
             user={currentUser}
             onLogout={handleLogout}
             onNavigateToInformes={() => setActiveTab('informes')}
+            onNavigateToPendientes={handleOpenPendingModal}
             onRoleChange={handleRoleChange}
             turnos={turnos}
           />
@@ -192,12 +196,15 @@ function AppContent() {
             user={currentUser}
             onLogout={handleLogout}
             onNavigateToInformes={() => setActiveTab('informes')}
+            onNavigateToPendientes={handleOpenPendingModal}
           />
         )}
         {activeTab === 'informes' && (
           <InformesScreen
             user={currentUser}
             onLogout={handleLogout}
+            onNavigateToInformes={() => setActiveTab('informes')}
+            onNavigateToPendientes={handleOpenPendingModal}
           />
         )}
         {activeTab === 'ajustes' && (
@@ -206,6 +213,7 @@ function AppContent() {
             onLogout={handleLogout}
             initialStatusFilter={ajustesInitialFilter}
             onNavigateToPendientes={handleOpenPendingModal}
+            onNavigateToInformes={() => setActiveTab('informes')}
           />
         )}
 
