@@ -12,6 +12,7 @@ interface UserContextType {
     isPasswordRecovery?: boolean;
     login: (user: User) => void;
     logout: () => void;
+    refreshUser: () => Promise<void>; // [NEW] Layer 3 Requirement
     userService: UserService;
 }
 
@@ -77,12 +78,27 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         window.location.reload(); // Force reload to clear any other state
     };
 
+    // [LAYER 3] Refresh User from Server (Bypassing Local Cache)
+    const refreshUser = async () => {
+        if (!currentUser) return;
+        try {
+            const freshUser = await userServiceInstance.findById(currentUser.id);
+            if (freshUser) {
+                console.log('[UserContext] Layer 3 Refresh: Profile Updated', freshUser.status);
+                login(freshUser); // Update State & Storage
+            }
+        } catch (e) {
+            console.error('Error refreshing user profile:', e);
+        }
+    };
+
     const value = {
         currentUser,
         isLoading,
         isPasswordRecovery, // Expose this
         login,
         logout,
+        refreshUser, // [NEW]
         userService: userServiceInstance,
     };
 

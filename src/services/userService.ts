@@ -67,6 +67,14 @@ export class UserService {
   }
 
   /**
+   * Obtiene un usuario por ID
+   * @param id ID del usuario
+   */
+  async findById(id: string): Promise<User | null> {
+    return this.repository.findById(id);
+  }
+
+  /**
    * Registra un nuevo usuario en el sistema
    */
   async registerUser(userData: Omit<User, 'id'>, password?: string): Promise<User> {

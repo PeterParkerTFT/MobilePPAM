@@ -1,6 +1,9 @@
-import React from 'react';
+import React, { useEffect } from 'react'; // [FIX] Add useEffect
 import { User } from '../types/models';
+import { UserStatus } from '../types/enums';
 import { ShieldAlert, LogOut, Clock } from 'lucide-react';
+import { useUser } from '../contexts/UserContext';
+import { supabase } from '../lib/supabase';
 
 interface PendingApprovalScreenProps {
     user: User;
@@ -8,6 +11,38 @@ interface PendingApprovalScreenProps {
 }
 
 export function PendingApprovalScreen({ user, onLogout }: PendingApprovalScreenProps) {
+    const { refreshUser } = useUser();
+
+    // [LAYER 3] Realtime Auto-Unlock
+    useEffect(() => {
+        if (!supabase || !user.id) return;
+
+        const channel = supabase
+            .channel('public:users')
+            .on(
+                'postgres_changes',
+                {
+                    event: 'UPDATE',
+                    schema: 'public',
+                    table: 'users',
+                    filter: `id=eq.${user.id}`,
+                },
+                async (payload) => {
+                    console.log('[PendingScreen] Received Realtime Update:', payload);
+                    const newUser = payload.new as User;
+                    // Check for Status 'ACTIVO' (Mapped to UserStatus.Aprobado)
+                    if (newUser.status === UserStatus.Aprobado) {
+                        console.log('[PendingScreen] User approved! Refreshing context...');
+                        await refreshUser();
+                    }
+                }
+            )
+            .subscribe();
+
+        return () => {
+            supabase?.removeChannel(channel);
+        };
+    }, [user.id]); // Removed refreshUser from deps loop to be safe, usually stable from context
     return (
         <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-4">
             <div className="bg-white max-w-md w-full rounded-2xl shadow-xl overflow-hidden">
