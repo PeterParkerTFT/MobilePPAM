@@ -145,6 +145,30 @@ export class SupabaseUserRepository implements IUserRepository {
             delete dbUpdates.congregacionNombre;
         }
 
+        // [SENIOR ARCHITECTURE FIX]
+        // Instead of "Try -> Fail -> Catch", we intelligently route the request.
+        // If we are modifying deeply sensitive Administrative fields (Role, Status, Congregation),
+        // we MUST use the Secure RPC (Vía Rápida) because standard RLS correctly blocks these changes.
+        // This avoids the "Red Console Error" completely.
+        const isAdminUpdate = 'role' in updates || 'status' in updates || 'congregacion' in updates;
+
+        if (isAdminUpdate) {
+            const { data: rpcData, error: rpcError } = await supabase.rpc('admin_update_user_profile', {
+                target_user_id: id,
+                new_role: updates.role,
+                new_status: updates.status,
+                new_congregation: updates.congregacion,
+                new_congregation_nombre: updates.congregacionNombre || dbUpdates.congregacion_nombre
+            });
+
+            if (rpcError) {
+                console.error('Secure RPC Update failed:', rpcError);
+                throw rpcError;
+            }
+            return this.mapToUser(rpcData);
+        }
+
+        // Standard Update (for self-profile edits like Name/Phone)
         const { data, error } = await supabase
             .from('users')
             .update(dbUpdates)
@@ -153,28 +177,7 @@ export class SupabaseUserRepository implements IUserRepository {
             .single();
 
         if (error) {
-            // [SENIOR FIX] Fallback mechanism for RLS/Permission blocks (406 / PGRST116)
-            // If the standard update fails because the policy hides the new row from us,
-            // we bypass RLS by calling a Trusted RPC function.
-            if (error.code === 'PGRST116' || error.code === '406' || error.code === '42501') {
-                console.log('Standard Update failed due to RLS, attempting Trusted RPC Fallback...');
-
-                const { data: rpcData, error: rpcError } = await supabase.rpc('admin_update_user_profile', {
-                    target_user_id: id,
-                    new_role: updates.role,
-                    new_status: updates.status,
-                    new_congregation: updates.congregacion,
-                    new_congregation_nombre: updates.congregacionNombre || dbUpdates.congregacion_nombre
-                });
-
-                if (rpcError) {
-                    console.error('RPC Fallback also failed:', rpcError);
-                    throw error; // Throw original error if fallback dies
-                }
-
-                return this.mapToUser(rpcData);
-            }
-
+            // Fallback just in case, but usually shouldn't be reached for admin actions anymore
             console.error('Error actualizando usuario:', error);
             throw error;
         }
