@@ -506,18 +506,43 @@ function PanelGlobalView({ user, onLogout, initialStatusFilter = 'all' }: Ajuste
   const [searchTerm, setSearchTerm] = useState('');
   const [roleFilter, setRoleFilter] = useState<UserRole | 'all'>('all');
 
-  const [statusFilter, setStatusFilter] = useState<UserStatus | 'all'>(initialStatusFilter);
+  // View Mode: 'active' (Users) or 'requests' (Pending)
+  const [viewMode, setViewMode] = useState<'active' | 'requests'>(
+    initialStatusFilter === UserStatus.Pendiente ? 'requests' : 'active'
+  );
 
-  // Update filter if prop changes (e.g. navigation from menu while already on screen)
-  useEffect(() => {
-    if (initialStatusFilter && initialStatusFilter !== 'all') {
-      setStatusFilter(initialStatusFilter);
-      setActiveTab('usuarios'); // Ensure we are on the users tab
-    }
-  }, [initialStatusFilter]);
+  // Derive statusFilter from View Mode (legacy support + internal logic)
+  const statusFilter = viewMode === 'requests' ? UserStatus.Pendiente : 'all';
 
   const [isLoading, setIsLoading] = useState(false);
   const [usersData, setUsersData] = useState<User[]>([]);
+
+  // Update view mode if prop changes
+  useEffect(() => {
+    if (initialStatusFilter === UserStatus.Pendiente) {
+      setViewMode('requests');
+      setActiveTab('usuarios');
+    }
+  }, [initialStatusFilter]);
+
+  const usuariosFiltrados = usersData.filter(u => {
+    const matchSearch = u.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      u.email.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchRole = roleFilter === 'all' || u.role === roleFilter;
+
+    // New Logic based on ViewMode
+    let matchStatus = true;
+    if (viewMode === 'requests') {
+      matchStatus = u.status === UserStatus.Pendiente;
+    } else {
+      // In 'active' mode, we show everyone EXCEPT Pending? Or just Approved?
+      // Let's show All NON-Pending to be safe (so we see rejected too if needed, or just approved).
+      // Given the requirement "Usuarios Activos", let's show Approved + maybe others, but definitely NOT Pending (since they are in the other tab).
+      matchStatus = u.status !== UserStatus.Pendiente;
+    }
+
+    return matchSearch && matchRole && matchStatus;
+  });
   const [congregacionesData, setCongregacionesData] = useState<Congregacion[]>([]);
   const [sitiosData, setSitiosData] = useState<Sitio[]>([]);
 
@@ -577,14 +602,7 @@ function PanelGlobalView({ user, onLogout, initialStatusFilter = 'all' }: Ajuste
     }
   };
 
-  // Filtrar usuarios
-  const usuariosFiltrados = usersData.filter(u => {
-    const matchSearch = u.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      u.email.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchRole = roleFilter === 'all' || u.role === roleFilter;
-    const matchStatus = statusFilter === 'all' || u.status === statusFilter;
-    return matchSearch && matchRole && matchStatus;
-  });
+
 
   const getRoleIcon = (role: UserRole) => {
     if (role === UserRole.AdminLocal || role === UserRole.AdminGlobal) return <Shield className="w-4 h-4" />;
@@ -913,32 +931,40 @@ function PanelGlobalView({ user, onLogout, initialStatusFilter = 'all' }: Ajuste
             </h2>
 
 
-            {/* Filters Container */}
-            <div className="flex flex-col sm:flex-row gap-3 mb-4">
-              {/* Role Filter */}
-              <div className="flex flex-wrap gap-2">
-                <button onClick={() => setRoleFilter('all')} className={`px-3 py-1.5 rounded-lg text-sm border ${roleFilter === 'all' ? 'bg-[#594396] text-white border-transparent' : 'border-gray-200'}`}>Todos</button>
-                <button onClick={() => setRoleFilter(UserRole.AdminLocal)} className={`px-3 py-1.5 rounded-lg text-sm border ${roleFilter === UserRole.AdminLocal ? 'bg-[#594396] text-white border-transparent' : 'border-gray-200'}`}>Admins</button>
-                <button onClick={() => setRoleFilter(UserRole.Capitan)} className={`px-3 py-1.5 rounded-lg text-sm border ${roleFilter === UserRole.Capitan ? 'bg-[#594396] text-white border-transparent' : 'border-gray-200'}`}>Capitanes</button>
-                <button onClick={() => setRoleFilter(UserRole.Voluntario)} className={`px-3 py-1.5 rounded-lg text-sm border ${roleFilter === UserRole.Voluntario ? 'bg-[#594396] text-white border-transparent' : 'border-gray-200'}`}>Voluntarios</button>
+            {/* New Tabbed Logic */}
+            <div className="mb-6">
+              {/* Top Tabs: Active vs Requests */}
+              <div className="flex p-1 bg-gray-100 rounded-xl mb-4 w-full sm:w-fit">
+                <button
+                  onClick={() => setViewMode('active')}
+                  className={`flex-1 sm:flex-initial px-4 py-2 rounded-lg text-sm font-medium transition-all ${viewMode === 'active' ? 'bg-white text-[#594396] shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                >
+                  👥 Usuarios Activos
+                </button>
+                <button
+                  onClick={() => setViewMode('requests')}
+                  className={`flex-1 sm:flex-initial px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-2 ${viewMode === 'requests' ? 'bg-white text-amber-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                >
+                  <AlertCircle className="w-4 h-4" />
+                  Solicitudes
+                  {/* Badge count could go here */}
+                  {usersData.filter(u => u.status === UserStatus.Pendiente).length > 0 && (
+                    <span className="bg-amber-100 text-amber-700 text-[10px] px-1.5 py-0.5 rounded-full">
+                      {usersData.filter(u => u.status === UserStatus.Pendiente).length}
+                    </span>
+                  )}
+                </button>
               </div>
 
-              {/* Status Filter (New) */}
-              <div className="flex flex-wrap gap-2 sm:ml-auto">
-                <button
-                  onClick={() => setStatusFilter('all')}
-                  className={`px-3 py-1.5 rounded-lg text-sm border ${statusFilter === 'all' ? 'bg-gray-800 text-white border-transparent' : 'border-gray-200 text-gray-600'}`}
-                >
-                  Todos
-                </button>
-                <button
-                  onClick={() => setStatusFilter(UserStatus.Pendiente)}
-                  className={`px-3 py-1.5 rounded-lg text-sm border flex items-center gap-1 ${statusFilter === UserStatus.Pendiente ? 'bg-amber-500 text-white border-transparent' : 'border-amber-200 text-amber-500 bg-amber-50'}`}
-                >
-                  <AlertCircle className="w-3 h-3" />
-                  Pendientes
-                </button>
-              </div>
+              {/* Secondary Filters: Roles (Only show when in Active View typically, or both) */}
+              {viewMode === 'active' && (
+                <div className="flex flex-wrap gap-2 animate-in fade-in slide-in-from-top-2 duration-200">
+                  <button onClick={() => setRoleFilter('all')} className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${roleFilter === 'all' ? 'bg-[#594396] text-white border-transparent' : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'}`}>Todos</button>
+                  <button onClick={() => setRoleFilter(UserRole.AdminLocal)} className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${roleFilter === UserRole.AdminLocal ? 'bg-[#594396] text-white border-transparent' : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'}`}>Admins</button>
+                  <button onClick={() => setRoleFilter(UserRole.Capitan)} className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${roleFilter === UserRole.Capitan ? 'bg-[#594396] text-white border-transparent' : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'}`}>Capitanes</button>
+                  <button onClick={() => setRoleFilter(UserRole.Voluntario)} className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${roleFilter === UserRole.Voluntario ? 'bg-[#594396] text-white border-transparent' : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'}`}>Voluntarios</button>
+                </div>
+              )}
             </div>
 
             {/* Search */}
