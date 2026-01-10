@@ -275,6 +275,15 @@ export class TurnoService {
     async getMisTurnos(userId: string): Promise<TurnoSesion[]> {
         if (!supabase) throw new Error('Supabase no configurado');
 
+        // [FIX] Use local date to avoid timezone issues (UTC vs Local)
+        // This prevents "Today" turns from disappearing late at night.
+        const getLocalDate = () => {
+            const d = new Date();
+            d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+            return d.toISOString().split('T')[0];
+        };
+        const todayStr = getLocalDate();
+
         const { data, error } = await supabase
             .from('turno_voluntarios')
             .select(`
@@ -299,7 +308,7 @@ export class TurnoService {
                 )
             `)
             .eq('user_id', userId)
-            .gte('fecha', new Date().toISOString().split('T')[0])
+            .gte('fecha', todayStr) // Use local date
             .order('fecha', { ascending: true });
 
         if (error) {

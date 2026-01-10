@@ -27,7 +27,18 @@ export function TurnosScreen({ user, onLogout, turnos, capitanes, onInscripcion,
   const [showAllEvents, setShowAllEvents] = useState(false);
   const [showPastTurnos, setShowPastTurnos] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
-  const [selectedTurno, setSelectedTurno] = useState<Turno | null>(null);
+  // [SENIOR ARCHITECTURE FIX]
+  // Instead of storing the full object (state duplication), we store the composite key (ID + Date).
+  // Then we DERIVE the selectedTurno from the fresh 'turnos' prop.
+  // This guarantees that when the parent fetches new data, the Modal updates instantly without useEffects or flickering.
+  const [selectedTurnoKey, setSelectedTurnoKey] = useState<{ id: string, fecha: string } | null>(null);
+
+  // Derived State
+  const selectedTurno = React.useMemo(() => {
+    if (!selectedTurnoKey) return null;
+    return turnos.find(t => t.id === selectedTurnoKey.id && t.fecha === selectedTurnoKey.fecha) || null;
+  }, [turnos, selectedTurnoKey]);
+
   const [showAddModal, setShowAddModal] = useState(false);
   const [showMapModal, setShowMapModal] = useState(false);
   const colors = useThemeColors();
@@ -260,9 +271,9 @@ export function TurnosScreen({ user, onLogout, turnos, capitanes, onInscripcion,
 
                   return (
                     <div
-                      key={turno.id}
+                      key={`${turno.id}-${turno.fecha}`}
                       id={filteredTurnos.indexOf(turno) === 0 ? 'tour-turno-card' : undefined}
-                      onClick={() => setSelectedTurno(turno)}
+                      onClick={() => setSelectedTurnoKey({ id: turno.id, fecha: turno.fecha as string })}
                       className="rounded-lg p-3 flex items-center gap-3 cursor-pointer hover:opacity-90 transition-all theme-transition"
                       style={{
                         backgroundColor: `rgb(${colors.bg.secondary})`,
@@ -320,10 +331,13 @@ export function TurnosScreen({ user, onLogout, turnos, capitanes, onInscripcion,
         <TurnoDetailModal
           turno={selectedTurno}
           user={user}
-          onClose={() => setSelectedTurno(null)}
+          onClose={() => setSelectedTurnoKey(null)}
           onInscribirse={() => {
             onInscripcion(selectedTurno.id, user.id);
-            setSelectedTurno(null);
+            // Don't close immediately here if we want to show success, 
+            // but usually we close or rely on parent update.
+            // If we close, key is null.
+            setSelectedTurnoKey(null);
           }}
           onTurnoUpdated={onTurnoCreated}
         />
