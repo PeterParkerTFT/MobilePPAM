@@ -504,73 +504,15 @@ function PanelGlobalView({ user, onLogout }: AjustesScreenProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [roleFilter, setRoleFilter] = useState<UserRole | 'all'>('all');
 
-  const [isLoading, setIsLoading] = useState(false);
-  const [usersData, setUsersData] = useState<User[]>([]);
-  const [congregacionesData, setCongregacionesData] = useState<Congregacion[]>([]);
-  const [sitiosData, setSitiosData] = useState<Sitio[]>([]);
-
-  // Modal States
-  const [showCongregacionModal, setShowCongregacionModal] = useState(false);
-  const [editingCongregacion, setEditingCongregacion] = useState<Congregacion | null>(null);
-
-  // User Modal State
-  const [showUserModal, setShowUserModal] = useState(false);
-  const [editingUser, setEditingUser] = useState<User | null>(null);
-  const [userForm, setUserForm] = useState({
-    role: UserRole.Voluntario,
-    congregacion: '',
-    status: UserStatus.Pendiente
-  });
-  const [congForm, setCongForm] = useState({ nombre: '', circuito: '', ciudad: '' });
-
-  const [showSitioModal, setShowSitioModal] = useState(false);
-  const [editingSitio, setEditingSitio] = useState<Sitio | null>(null);
-  const [sitioForm, setSitioForm] = useState({
-    nombre: '',
-    direccion: '',
-    tipo: 'Punto de Encuentro',
-    congregacionId: '',
-    lat: '',
-    lng: '',
-    eventType: 'expositores' // Default
-  });
-
-  // Saving State
-  const [isSaving, setIsSaving] = useState(false);
-
-  // Instance service (memoized or static)
-  const congregacionService = new CongregacionService();
-
-  useEffect(() => {
-    loadData();
-  }, [activeTab]);
-
-  const loadData = async () => {
-    setIsLoading(true);
-    try {
-      if (activeTab === 'congregaciones') {
-        const data = await congregacionService.findAll();
-        setCongregacionesData(data);
-      } else if (activeTab === 'sitios') {
-        const data = await congregacionService.getAllSitios();
-        setSitiosData(data);
-      } else if (activeTab === 'usuarios') {
-        const data = await userService.searchUsers({}, user); // Fetch all users (Global Admin)
-        setUsersData(data);
-      }
-    } catch (error) {
-      console.error('Error loading data:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  const [statusFilter, setStatusFilter] = useState<UserStatus | 'all'>('all');
 
   // Filtrar usuarios
   const usuariosFiltrados = usersData.filter(u => {
     const matchSearch = u.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
       u.email.toLowerCase().includes(searchTerm.toLowerCase());
     const matchRole = roleFilter === 'all' || u.role === roleFilter;
-    return matchSearch && matchRole;
+    const matchStatus = statusFilter === 'all' || u.status === statusFilter;
+    return matchSearch && matchRole && matchStatus;
   });
 
   const getRoleIcon = (role: UserRole) => {
@@ -899,12 +841,33 @@ function PanelGlobalView({ user, onLogout }: AjustesScreenProps) {
               Usuarios ({usuariosFiltrados.length})
             </h2>
 
-            {/* Role Filter */}
-            <div className="flex flex-wrap gap-2 mb-4">
-              <button onClick={() => setRoleFilter('all')} className={`px-3 py-1.5 rounded-lg text-sm border ${roleFilter === 'all' ? 'bg-[#594396] text-white border-transparent' : 'border-gray-200'}`}>Todos</button>
-              <button onClick={() => setRoleFilter(UserRole.AdminLocal)} className={`px-3 py-1.5 rounded-lg text-sm border ${roleFilter === UserRole.AdminLocal ? 'bg-[#594396] text-white border-transparent' : 'border-gray-200'}`}>Admins</button>
-              <button onClick={() => setRoleFilter(UserRole.Capitan)} className={`px-3 py-1.5 rounded-lg text-sm border ${roleFilter === UserRole.Capitan ? 'bg-[#594396] text-white border-transparent' : 'border-gray-200'}`}>Capitanes</button>
-              <button onClick={() => setRoleFilter(UserRole.Voluntario)} className={`px-3 py-1.5 rounded-lg text-sm border ${roleFilter === UserRole.Voluntario ? 'bg-[#594396] text-white border-transparent' : 'border-gray-200'}`}>Voluntarios</button>
+
+            {/* Filters Container */}
+            <div className="flex flex-col sm:flex-row gap-3 mb-4">
+              {/* Role Filter */}
+              <div className="flex flex-wrap gap-2">
+                <button onClick={() => setRoleFilter('all')} className={`px-3 py-1.5 rounded-lg text-sm border ${roleFilter === 'all' ? 'bg-[#594396] text-white border-transparent' : 'border-gray-200'}`}>Todos</button>
+                <button onClick={() => setRoleFilter(UserRole.AdminLocal)} className={`px-3 py-1.5 rounded-lg text-sm border ${roleFilter === UserRole.AdminLocal ? 'bg-[#594396] text-white border-transparent' : 'border-gray-200'}`}>Admins</button>
+                <button onClick={() => setRoleFilter(UserRole.Capitan)} className={`px-3 py-1.5 rounded-lg text-sm border ${roleFilter === UserRole.Capitan ? 'bg-[#594396] text-white border-transparent' : 'border-gray-200'}`}>Capitanes</button>
+                <button onClick={() => setRoleFilter(UserRole.Voluntario)} className={`px-3 py-1.5 rounded-lg text-sm border ${roleFilter === UserRole.Voluntario ? 'bg-[#594396] text-white border-transparent' : 'border-gray-200'}`}>Voluntarios</button>
+              </div>
+
+              {/* Status Filter (New) */}
+              <div className="flex flex-wrap gap-2 sm:ml-auto">
+                <button
+                  onClick={() => setStatusFilter('all')}
+                  className={`px-3 py-1.5 rounded-lg text-sm border ${statusFilter === 'all' ? 'bg-gray-800 text-white border-transparent' : 'border-gray-200 text-gray-600'}`}
+                >
+                  Todos
+                </button>
+                <button
+                  onClick={() => setStatusFilter(UserStatus.Pendiente)}
+                  className={`px-3 py-1.5 rounded-lg text-sm border flex items-center gap-1 ${statusFilter === UserStatus.Pendiente ? 'bg-amber-500 text-white border-transparent' : 'border-amber-200 text-amber-500 bg-amber-50'}`}
+                >
+                  <AlertCircle className="w-3 h-3" />
+                  Pendientes
+                </button>
+              </div>
             </div>
 
             {/* Search */}
