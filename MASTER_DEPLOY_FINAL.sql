@@ -164,10 +164,22 @@ DROP POLICY IF EXISTS "Active users can view turnos" ON public.turnos;
 CREATE POLICY "Active users can view turnos" ON public.turnos
 FOR SELECT USING ( public.is_active_or_admin() );
 
+DROP POLICY IF EXISTS "Active users can create turnos" ON public.turnos;
+CREATE POLICY "Active users can create turnos" ON public.turnos
+FOR INSERT WITH CHECK ( public.is_active_or_admin() );
+
+DROP POLICY IF EXISTS "Admins can manage turnos" ON public.turnos;
+CREATE POLICY "Admins can manage turnos" ON public.turnos
+FOR ALL USING ( public.auth_have_any_role(ARRAY['ADMIN_GLOBAL', 'ADMIN_LOCAL']) );
+
 -- 2. SITIOS (Locked for PENDING)
 DROP POLICY IF EXISTS "Active users can view sitios" ON public.sitios;
 CREATE POLICY "Active users can view sitios" ON public.sitios
 FOR SELECT USING ( public.is_active_or_admin() );
+
+DROP POLICY IF EXISTS "Active users can create sitios" ON public.sitios;
+CREATE POLICY "Active users can create sitios" ON public.sitios
+FOR INSERT WITH CHECK ( public.is_active_or_admin() );
 
 -- 3. INSCRIPTIONS
 DROP POLICY IF EXISTS "Active users can view inscriptions" ON public.turno_voluntarios;

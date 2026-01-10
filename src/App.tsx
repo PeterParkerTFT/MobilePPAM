@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { supabase } from './lib/supabase'; // [NEW] Realtime Connection
 import { ThemeProvider } from './contexts/ThemeContext';
 import { useUser, UserProvider } from './contexts/UserContext';
 import { NotificationsProvider } from './contexts/NotificationsContext';
@@ -55,10 +56,41 @@ function AppContent() {
 
 
 
-  // Fetch data on load
+  // Fetch data on load and Listen for Changes [REALTIME SENIOR IMPL]
   useEffect(() => {
     if (currentUser) {
       loadTurnos();
+
+      // [REALTIME] Subscribe to Turnos Table
+      const subscription = supabase
+        ?.channel('turnos-changes')
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'turnos' },
+          (payload) => {
+            console.log('[App] Realtime Change detected!', payload);
+            loadTurnos(); // Refresh all screens
+          }
+        )
+        .subscribe();
+
+      // [REALTIME] Subscribe to Inscriptions (To update cupos instantly)
+      const subInscriptions = supabase
+        ?.channel('inscriptions-changes')
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'turno_voluntarios' },
+          (payload) => {
+            console.log('[App] Inscription Change detected!', payload);
+            loadTurnos();
+          }
+        )
+        .subscribe();
+
+      return () => {
+        if (subscription) supabase?.removeChannel(subscription);
+        if (subInscriptions) supabase?.removeChannel(subInscriptions);
+      };
     }
   }, [currentUser]);
 
