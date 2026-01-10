@@ -98,7 +98,7 @@ export class SupabaseUserRepository implements IUserRepository {
         if (!supabase) throw new Error('Supabase no está configurado');
         if (!password) throw new Error('Password requerido para crear usuario en Supabase');
 
-        // 1. Create Auth User
+        // 1. Create Auth User (Trigger will create public profile)
         const { data: authData, error: authError } = await supabase.auth.signUp({
             email: user.email,
             password: password,
@@ -106,38 +106,33 @@ export class SupabaseUserRepository implements IUserRepository {
                 data: {
                     nombre: user.nombre,
                     role: user.role,
-                    congregacion: user.congregacion
+                    congregacion: user.congregacion,
+                    telefono: user.telefono,      // [Added for Trigger]
+                    status: user.status           // [Added for Trigger]
                 }
             }
         });
 
         if (authError) {
             console.error('Error creando Auth User:', authError);
-            throw authError; // This will now be caught by LoginScreen and message shown
+            throw authError;
         }
 
         if (!authData.user) throw new Error('No se pudo crear el usuario');
 
-        // 2. Insert into public.users
-        const newUserProfile = {
+        // 2. Return optimistic user object (assuming Trigger worked)
+        // We don't need to fetch immediately because we know what we just sent.
+        // But for safety/completeness we return the mapped object.
+        return {
             id: authData.user.id,
-            ...user,
+            nombre: user.nombre,
+            email: user.email,
+            telefono: user.telefono,
+            role: user.role,
+            status: user.status,
             congregacion: user.congregacion,
-            congregacion_nombre: user.congregacionNombre
+            congregacionNombre: user.congregacionNombre // This might be undefined in client context, but that's acceptable for now.
         };
-
-        const { data: dbData, error: dbError } = await supabase
-            .from('users')
-            .upsert(newUserProfile)
-            .select()
-            .single();
-
-        if (dbError) {
-            console.error('Error creando perfil de usuario:', dbError);
-            throw dbError;
-        }
-
-        return this.mapToUser(dbData);
     }
 
     async update(id: string, updates: Partial<User>): Promise<User> {
