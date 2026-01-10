@@ -411,6 +411,55 @@ export class TurnoService {
     }
 
     /**
+     * Elimina un turno y sus dependencias (inscripciones).
+     */
+    async deleteTurno(turnoId: string): Promise<boolean> {
+        if (!supabase) throw new Error('Supabase no configurado');
+
+        // Eliminar inscripciones primero (aunque ON DELETE CASCADE debería manejarlo, es bueno ser explícito)
+        const { error: volError } = await supabase
+            .from('turno_voluntarios')
+            .delete()
+            .eq('turno_id', turnoId);
+
+        if (volError) console.warn('Error deleting volunteers (might be cascade handled):', volError);
+
+        // Eliminar el turno
+        const { error } = await supabase
+            .from('turnos')
+            .delete()
+            .eq('id', turnoId);
+
+        if (error) {
+            console.error('Error deleting turno:', error);
+            throw error;
+        }
+
+        return true;
+    }
+
+    /**
+     * Asigna un capitán a un turno.
+     * Si el usuario ya estaba inscrito, se actualiza su rol en el contexto del turno (si hubiera tabla intermedia con roles),
+     * pero aquí actualizamos el capitan_id en la tabla turnos.
+     */
+    async assignCaptain(turnoId: string, userId: string): Promise<boolean> {
+        if (!supabase) throw new Error('Supabase no configurado');
+
+        const { error } = await supabase
+            .from('turnos')
+            .update({ capitan_id: userId })
+            .eq('id', turnoId);
+
+        if (error) {
+            console.error('Error assigning captain:', error);
+            throw error;
+        }
+
+        return true;
+    }
+
+    /**
      * Helper para normalizar tipos legacy a tipos nuevos.
      */
     private normalizeLegacyType(type: string | undefined): string {

@@ -1,23 +1,65 @@
 import React, { useState } from 'react';
-import { X, MapPin, Clock, Users, User as UserIcon, MessageCircle, Check, Phone, ChevronRight, Share2, AlertCircle, Navigation } from 'lucide-react';
+import { X, MapPin, Clock, Users, User as UserIcon, MessageCircle, Check, Phone, ChevronRight, Share2, AlertCircle, Navigation, Trash2, Edit } from 'lucide-react';
 import { EventBadge } from './EventBadge';
 import { getEventType } from '../constants/eventTypes';
 import { useThemeColors } from '../hooks/useThemeColors';
 import { User, Turno } from '../types/models';
+import { EnumHelpers, UserRole } from '../types/enums';
+import { TurnoService } from '../services/TurnoService';
+import { UserPicker } from './UserPicker';
 
 interface TurnoDetailModalProps {
   turno: Turno;
   user: User;
   onClose: () => void;
   onInscribirse: () => void;
+  onTurnoUpdated?: () => void; // Refresh list
 }
 
-export function TurnoDetailModal({ turno, user, onClose, onInscribirse }: TurnoDetailModalProps) {
+export function TurnoDetailModal({ turno, user, onClose, onInscribirse, onTurnoUpdated }: TurnoDetailModalProps) {
   const colors = useThemeColors();
   const isInscrito = turno.voluntariosInscritos.includes(user.id);
   const cupoMaximo = turno.cupoMaximo || 0;
   const isFull = turno.cupoActual >= cupoMaximo;
   const canInscribirse = !isInscrito && !isFull;
+
+  const [showUserPicker, setShowUserPicker] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  // Permission Check
+  // Admins are Global or Local. Coordinators are Captains. 
+  // Managers can delete? Usually Admins.
+  const isAdminOrCoord = EnumHelpers.isAdmin(user.role);
+  // If captains can also manage their own turn:
+  const isMyTurno = turno.capitanId === user.id;
+  const canManage = isAdminOrCoord || isMyTurno;
+
+  const turnoService = new TurnoService(); // Should use context/prop ideally
+
+  const handleDelete = async () => {
+    if (!confirm('¿Estás seguro de que quieres eliminar este turno? Esta acción no se puede deshacer.')) return;
+
+    setIsDeleting(true);
+    try {
+      await turnoService.deleteTurno(turno.id);
+      if (onTurnoUpdated) onTurnoUpdated();
+      onClose();
+    } catch (e) {
+      alert('Error al eliminar el turno');
+      console.error(e);
+      setIsDeleting(false);
+    }
+  };
+
+  const handleAssignCaptain = async (userId: string) => {
+    try {
+      await turnoService.assignCaptain(turno.id, userId);
+      if (onTurnoUpdated) onTurnoUpdated();
+      setShowUserPicker(false);
+    } catch (e) {
+      alert('Error al asignar capitán');
+    }
+  };
 
   const getSemaforoText = () => {
     switch (turno.estado) {
@@ -49,21 +91,6 @@ export function TurnoDetailModal({ turno, user, onClose, onInscribirse }: TurnoD
 
   const handleWhatsAppClick = () => {
     window.open(turno.grupoWhatsApp, '_blank');
-  };
-
-  const [isSharing, setIsSharing] = useState(false);
-
-  const handleShareClick = () => {
-    setIsSharing(true);
-    navigator.share({
-      title: turno.titulo,
-      text: `¡Únete a mi turno de ${turno.titulo}!`,
-      url: window.location.href
-    }).then(() => {
-      setIsSharing(false);
-    }).catch(() => {
-      setIsSharing(false);
-    });
   };
 
   return (
@@ -100,12 +127,27 @@ export function TurnoDetailModal({ turno, user, onClose, onInscribirse }: TurnoD
                 <span className="text-xs font-semibold">{getSemaforoText()}</span>
               </div>
             </div>
-            <button
-              onClick={onClose}
-              className="p-2 hover:bg-white/10 rounded-full transition-colors ml-2"
-            >
-              <X className="w-6 h-6" />
-            </button>
+
+            <div className="flex gap-2">
+              {/* Delete Button (Admin Only) */}
+              {isAdminOrCoord && (
+                <button
+                  onClick={handleDelete}
+                  disabled={isDeleting}
+                  className="p-2 bg-red-500/20 hover:bg-red-500/40 rounded-full transition-colors text-white"
+                  title="Eliminar Turno"
+                >
+                  <Trash2 className="w-6 h-6" />
+                </button>
+              )}
+
+              <button
+                onClick={onClose}
+                className="p-2 hover:bg-white/10 rounded-full transition-colors"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
           </div>
 
           {isInscrito && (
@@ -240,12 +282,24 @@ export function TurnoDetailModal({ turno, user, onClose, onInscribirse }: TurnoD
 
           {/* Información del Capitán */}
           <div>
-            <h3
-              className="font-medium mb-3"
-              style={{ color: `rgb(${colors.text.primary})` }}
-            >
-              Capitán Asignado
-            </h3>
+            <div className="flex justify-between items-center mb-3">
+              <h3
+                className="font-medium"
+                style={{ color: `rgb(${colors.text.primary})` }}
+              >
+                Capitán Asignado
+              </h3>
+              {canManage && (
+                <button
+                  onClick={() => setShowUserPicker(true)}
+                  className="text-xs text-blue-600 font-medium flex items-center gap-1 hover:underline"
+                >
+                  <Edit className="w-3 h-3" />
+                  {turno.capitanNombre ? 'Cambiar' : 'Asignar'}
+                </button>
+              )}
+            </div>
+
             <div
               className="rounded-xl p-4 text-white theme-transition"
               style={{ backgroundColor: `rgb(${colors.interactive.primary})` }}
@@ -255,12 +309,12 @@ export function TurnoDetailModal({ turno, user, onClose, onInscribirse }: TurnoD
                   <UserIcon className="w-6 h-6" />
                 </div>
                 <div>
-                  <div className="font-medium">{turno.capitanNombre}</div>
+                  <div className="font-medium">{turno.capitanNombre || 'Sin asignar'}</div>
                   <div className="text-xs text-blue-100">Coordinador del Turno</div>
                 </div>
               </div>
 
-              {isInscrito && (
+              {isInscrito && turno.grupoWhatsApp && (
                 <button
                   onClick={handleWhatsAppClick}
                   className="w-full bg-green-500 hover:bg-green-600 text-white py-2.5 rounded-lg flex items-center justify-center gap-2 transition-colors"
@@ -335,6 +389,14 @@ export function TurnoDetailModal({ turno, user, onClose, onInscribirse }: TurnoD
           </div>
         </div>
       </div>
+
+      {showUserPicker && (
+        <UserPicker
+          onClose={() => setShowUserPicker(false)}
+          onSelect={(id, name) => handleAssignCaptain(id)}
+          title="Asignar Capitán"
+        />
+      )}
     </div>
   );
 }

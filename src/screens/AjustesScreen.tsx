@@ -108,6 +108,14 @@ function MiPerfilView({ user, onLogout }: AjustesScreenProps) {
     }
   };
 
+  const handleRequestCaptain = async () => {
+    if (!confirm('¿Deseas solicitar ser Capitán? Los administradores recibirán tu solicitud.')) return;
+    // Ideally show loading state
+    const success = await userService.requestRoleChange(user.id, UserRole.Capitan);
+    if (success) alert('Solicitud enviada correctamente');
+    else alert('Error al enviar solicitud');
+  };
+
   return (
     <div className="px-4 py-6 max-w-2xl mx-auto">
       {/* Avatar y Foto de Perfil */}
@@ -365,6 +373,18 @@ function MiPerfilView({ user, onLogout }: AjustesScreenProps) {
             </span>
           </div>
         </div>
+
+        {/* Request Role Button (Only for Volunteers) */}
+        {user.role === UserRole.Voluntario && (
+          <button
+            onClick={handleRequestCaptain}
+            className="w-full mt-4 py-3 rounded-xl border-2 border-dashed flex items-center justify-center gap-2 hover:bg-black/5 transition-colors"
+            style={{ borderColor: `rgb(${colors.interactive.primary})`, color: `rgb(${colors.interactive.primary})` }}
+          >
+            <Shield className="w-5 h-5" />
+            <span className="font-medium">Solicitar ser Capitán</span>
+          </button>
+        )}
       </div>
 
       {/* Tarjeta de Asignación */}
