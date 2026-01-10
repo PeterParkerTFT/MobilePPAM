@@ -42,6 +42,8 @@ import { congregaciones, getCongregacionNombre } from '../data/congregaciones';
 interface AjustesScreenProps {
   user: User;
   onLogout: () => void;
+  initialStatusFilter?: UserStatus | 'all';
+  onNavigateToPendientes?: () => void;
 }
 
 // Helper para compatibilidad con tipos legacy
@@ -497,14 +499,22 @@ import { getEventColor } from '../constants/eventTypes';
 
 type TabType = 'congregaciones' | 'sitios' | 'usuarios';
 
-function PanelGlobalView({ user, onLogout }: AjustesScreenProps) {
+function PanelGlobalView({ user, onLogout, initialStatusFilter = 'all' }: AjustesScreenProps) {
   const { userService, login } = useUser();
   const colors = useThemeColors();
   const [activeTab, setActiveTab] = useState<TabType>('congregaciones');
   const [searchTerm, setSearchTerm] = useState('');
   const [roleFilter, setRoleFilter] = useState<UserRole | 'all'>('all');
 
-  const [statusFilter, setStatusFilter] = useState<UserStatus | 'all'>('all');
+  const [statusFilter, setStatusFilter] = useState<UserStatus | 'all'>(initialStatusFilter);
+
+  // Update filter if prop changes (e.g. navigation from menu while already on screen)
+  useEffect(() => {
+    if (initialStatusFilter && initialStatusFilter !== 'all') {
+      setStatusFilter(initialStatusFilter);
+      setActiveTab('usuarios'); // Ensure we are on the users tab
+    }
+  }, [initialStatusFilter]);
 
   const [isLoading, setIsLoading] = useState(false);
   const [usersData, setUsersData] = useState<User[]>([]);
@@ -1227,7 +1237,7 @@ function PanelGlobalView({ user, onLogout }: AjustesScreenProps) {
 // COMPONENTE PRINCIPAL CON LÓGICA CONDICIONAL
 // ==========================================
 
-export function AjustesScreen({ user, onLogout }: AjustesScreenProps) {
+export function AjustesScreen({ user, onLogout, initialStatusFilter, onNavigateToPendientes }: AjustesScreenProps) {
   const [showMenu, setShowMenu] = useState(false);
   const colors = useThemeColors();
 
@@ -1246,11 +1256,12 @@ export function AjustesScreen({ user, onLogout }: AjustesScreenProps) {
         onMenuToggle={() => setShowMenu(!showMenu)}
         user={user}
         onLogout={onLogout}
+        onNavigateToPendientes={onNavigateToPendientes}
       />
 
       {/* Renderizado condicional según rol */}
       {showGlobalPanel ? (
-        <PanelGlobalView user={user} onLogout={onLogout} />
+        <PanelGlobalView user={user} onLogout={onLogout} initialStatusFilter={initialStatusFilter} />
       ) : (
         <MiPerfilView user={user} onLogout={onLogout} />
       )}

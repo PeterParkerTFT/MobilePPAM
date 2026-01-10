@@ -17,6 +17,9 @@ import { UserRole, EnumHelpers } from './types/enums';
 // import { mockTurnos, mockCapitanes } from './data/mockData'; // Removed mock data
 import { TurnoService } from './services/TurnoService'; // [NEW]
 import { CongregacionService } from './services/CongregacionService'; // [NEW]
+import { PendingActionsModal } from './components/PendingActionsModal'; // [NEW]
+import { UserStatus } from './types/enums';
+
 
 // Singleton services
 const turnoService = new TurnoService();
@@ -29,6 +32,27 @@ function AppContent() {
   // State for real data
   const [turnos, setTurnos] = useState<TurnoSesion[]>([]); // Use TurnoSesion
   const [capitanes] = useState<Capitan[]>([]); // Capitanes fetch not implemented yet in this step, keeping empty for now or could implement CapitanService
+
+  // Pending Actions Hub State
+  const [showPendingModal, setShowPendingModal] = useState(false);
+  const [ajustesInitialFilter, setAjustesInitialFilter] = useState<UserStatus | 'all'>('all');
+
+  const handleOpenPendingModal = () => {
+    setShowPendingModal(true);
+  };
+
+  const handleNavigateToPendingUsers = () => {
+    setAjustesInitialFilter(UserStatus.Pendiente);
+    setActiveTab('ajustes');
+    setShowPendingModal(false);
+  };
+
+  const handleNavigateToPendingReports = () => {
+    setActiveTab('informes');
+    setShowPendingModal(false);
+  };
+
+
 
   // Fetch data on load
   useEffect(() => {
@@ -121,6 +145,7 @@ function AppContent() {
                 capitanes={capitanes}
                 onInscripcion={handleInscripcion}
                 onNavigateToInformes={() => setActiveTab('informes')}
+                onNavigateToPendientes={handleOpenPendingModal}
                 onTurnoCreated={loadTurnos}
               />
             )}
@@ -179,6 +204,8 @@ function AppContent() {
           <AjustesScreen
             user={currentUser}
             onLogout={handleLogout}
+            initialStatusFilter={ajustesInitialFilter}
+            onNavigateToPendientes={handleOpenPendingModal}
           />
         )}
 
@@ -186,6 +213,24 @@ function AppContent() {
           activeTab={activeTab}
           onTabChange={setActiveTab}
           userRole={currentUser.role}
+        />
+
+        <PendingActionsModal
+          isOpen={showPendingModal}
+          onClose={() => setShowPendingModal(false)}
+          onNavigateToUsers={handleNavigateToPendingUsers}
+          onNavigateToReports={handleNavigateToPendingReports}
+          userCount={0} // TODO: fetch real count
+          reportCount={0} // TODO: fetch real count
+        />
+
+        <PendingActionsModal
+          isOpen={showPendingModal}
+          onClose={() => setShowPendingModal(false)}
+          onNavigateToUsers={handleNavigateToPendingUsers}
+          onNavigateToReports={handleNavigateToPendingReports}
+          userCount={0} // TODO: fetch real count
+          reportCount={0} // TODO: fetch real count
         />
       </div>
     </div>

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Menu, FileText } from 'lucide-react';
+import { Menu, FileText, AlertCircle } from 'lucide-react';
 import { ThemeToggle } from './ThemeToggle';
 import { NotificationButton } from './NotificationButton';
 import { useThemeColors } from '../hooks/useThemeColors';
@@ -13,9 +13,10 @@ interface HeaderWithThemeProps {
   user: User;
   onLogout: () => void;
   onNavigateToInformes?: () => void; // Nueva prop opcional
+  onNavigateToPendientes?: () => void;
 }
 
-export function HeaderWithTheme({ title, showMenu, onMenuToggle, user, onLogout, onNavigateToInformes }: HeaderWithThemeProps) {
+export function HeaderWithTheme({ title, showMenu, onMenuToggle, user, onLogout, onNavigateToInformes, onNavigateToPendientes }: HeaderWithThemeProps) {
   const colors = useThemeColors();
 
   return (
@@ -65,6 +66,22 @@ export function HeaderWithTheme({ title, showMenu, onMenuToggle, user, onLogout,
                 {user.role}
               </div>
             </div>
+            {/* Opción "Pendientes" para Admins */}
+            {(user.role === UserRole.AdminGlobal || user.role === UserRole.AdminLocal) && onNavigateToPendientes && (
+              <button
+                onClick={() => {
+                  onNavigateToPendientes();
+                  onMenuToggle();
+                }}
+                className="w-full text-left px-3 py-2 hover:opacity-80 rounded text-sm transition-opacity flex items-center gap-2 mt-1"
+                style={{ color: `rgb(${colors.interactive.primary})` }}
+              >
+                <AlertCircle className="w-4 h-4 text-amber-500" />
+                <span className="flex-1">Solicitudes Pendientes</span>
+                {/* Badge could go here */}
+              </button>
+            )}
+
             {/* Opción "Mis Informes" para todos los roles */}
             {onNavigateToInformes && (
               <button

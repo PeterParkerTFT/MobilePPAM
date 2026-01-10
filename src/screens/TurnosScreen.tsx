@@ -18,10 +18,11 @@ interface TurnosScreenProps {
   capitanes: Capitan[];
   onInscripcion: (turnoId: string, userId: string) => void;
   onNavigateToInformes?: () => void;
+  onNavigateToPendientes?: () => void;
   onTurnoCreated?: () => void;
 }
 
-export function TurnosScreen({ user, onLogout, turnos, capitanes, onInscripcion, onNavigateToInformes, onTurnoCreated }: TurnosScreenProps) {
+export function TurnosScreen({ user, onLogout, turnos, capitanes, onInscripcion, onNavigateToInformes, onNavigateToPendientes, onTurnoCreated }: TurnosScreenProps) {
   const [selectedEvent, setSelectedEvent] = useState<string>('carrito');
   const [showAllEvents, setShowAllEvents] = useState(false);
   const [showPastTurnos, setShowPastTurnos] = useState(false);
@@ -92,6 +93,7 @@ export function TurnosScreen({ user, onLogout, turnos, capitanes, onInscripcion,
         user={user}
         onLogout={onLogout}
         onNavigateToInformes={onNavigateToInformes}
+        onNavigateToPendientes={onNavigateToPendientes}
       />
 
       <div className="px-4 py-4">
