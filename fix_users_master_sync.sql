@@ -3,6 +3,7 @@
 -- ==============================================================================
 -- Problem: Fragmentation of RLS policies caused "PGRST116" (Result contains 0 rows)
 --          and "406 Not Acceptable" because conflicting rules blocked access.
+--          PLUS: Missing profiles (Backfill) and Ghost profiles (Cleanup).
 -- Solution: Nuke & Pave. This script resets and unifies ALL logic for the users table.
 -- ==============================================================================
 
@@ -45,9 +46,12 @@ DROP POLICY IF EXISTS "Users can read own profile" ON public.users;
 DROP POLICY IF EXISTS "Ver usuarios" ON public.users;
 DROP POLICY IF EXISTS "policy_users_select" ON public.users;
 DROP POLICY IF EXISTS "policy_users_select_safe" ON public.users;
+DROP POLICY IF EXISTS "policy_users_select_master" ON public.users;
 DROP POLICY IF EXISTS "Admins can update users" ON public.users;
 DROP POLICY IF EXISTS "Users can update own profile" ON public.users;
+DROP POLICY IF EXISTS "policy_users_update_master" ON public.users;
 DROP POLICY IF EXISTS "enable_select_for_all" ON public.users;
+DROP POLICY IF EXISTS "policy_users_insert_master" ON public.users;
 
 -- 4. APPLY DEFINITIVE POLICIES
 
@@ -59,15 +63,15 @@ FOR SELECT USING (
   public.auth_have_any_role(ARRAY['ADMIN_GLOBAL', 'ADMIN_LOCAL'])
 );
 
--- B) UPDATE (UPDATE): Admins can approve/edit anyone. Users update specific fields (optional but safe).
+-- B) UPDATE (UPDATE): Admins can approve/edit anyone. Users update specific fields.
 CREATE POLICY "policy_users_update_master" ON public.users
 FOR UPDATE USING (
   -- Who can perform the update?
   public.auth_have_any_role(ARRAY['ADMIN_GLOBAL', 'ADMIN_LOCAL'])
-  OR date_part('year', age(created_at)) > 100 -- Impossible condition effectively disabling self-update for now unless needed
+  OR date_part('year', age(created_at)) > 100 -- Logic disabled for normal users for safety
 )
 WITH CHECK (
-  -- What can they change? (Double check to be safe)
+  -- What conditions must be met?
   public.auth_have_any_role(ARRAY['ADMIN_GLOBAL', 'ADMIN_LOCAL'])
 );
 
@@ -104,6 +108,35 @@ AFTER UPDATE ON public.users
 FOR EACH ROW
 EXECUTE PROCEDURE public.notify_on_approval();
 
+-- 6. [NEW] DATA INTEGRITY REPAIR (Fix "Missing" and "Ghost" users) 🧹
+
+-- A. BACKFILL: Create Missing Profiles from Auth
+DO $$
+DECLARE
+  user_rec record;
+BEGIN
+  FOR user_rec IN SELECT * FROM auth.users LOOP
+    IF NOT EXISTS (SELECT 1 FROM public.users WHERE id = user_rec.id) THEN
+      INSERT INTO public.users (id, email, nombre, role, congregacion, telefono, status, created_at)
+      VALUES (
+        user_rec.id,
+        user_rec.email,
+        COALESCE(user_rec.raw_user_meta_data->>'nombre', 'Usuario Sin Nombre'),
+        COALESCE(user_rec.raw_user_meta_data->>'role', 'VOLUNTARIO'),
+        user_rec.raw_user_meta_data->>'congregacion',
+        user_rec.raw_user_meta_data->>'telefono',
+        COALESCE(user_rec.raw_user_meta_data->>'status', 'PENDIENTE'),
+        NOW()
+      );
+    END IF;
+  END LOOP;
+END;
+$$;
+
+-- B. CLEANUP: Remove Ghost Profiles (Public users with no Auth user)
+DELETE FROM public.users 
+WHERE id NOT IN (SELECT id FROM auth.users);
+
 -- ==============================================================================
--- DONE. This restores full control to Admins and visibility to users.
+-- DONE. Secure, Synced, and Cleaned.
 -- ==============================================================================
