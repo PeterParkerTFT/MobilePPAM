@@ -107,6 +107,17 @@ export class TurnoService {
                 if (cupoActual >= cupoMax) estado = 'completo';
                 else if (cupoActual >= cupoMax * 0.8) estado = 'limitado';
 
+                // [FIX] Prioritize Turn Type if specific (e.g. 'expositores'), fallback to Site Type
+                const turnType = t.tipo || 'fijo';
+                const siteType = t.sitios?.event_type || t.sitios?.tipo || 'fijo';
+
+                // If turn has specific type (not fixed legacy), use it. Otherwise use site def.
+                const rawType = (turnType !== 'fijo' && turnType !== 'caminata') ? turnType : siteType;
+
+                // Normalizar tipos para que coincidan con los filtros del frontend
+                // Prioridad: EventType explícito en Sitio > Tipo Legacy en Sitio > Tipo en Turno
+                // const rawType = t.sitios?.event_type || t.sitios?.tipo || t.tipo || 'fijo'; // OLD LOGIC
+
                 upcomingTurnos.push({
                     id: t.id,
                     dia: t.dia,
@@ -122,7 +133,7 @@ export class TurnoService {
                     estado: estado,
 
                     // Frontend compatibility
-                    tipo: t.sitios.event_type || t.sitios.tipo || 'fijo',
+                    tipo: this.normalizeLegacyType(rawType), // Use calculated priority type
                     titulo: t.sitios.nombre,
                     descripcion: `${t.sitios.nombre} (${t.dia})`,
                     horaInicio: t.horario_inicio.substring(0, 5),
@@ -386,6 +397,7 @@ export class TurnoService {
                 horario_inicio: turno.horaInicio,
                 horario_fin: turno.horaFin,
                 voluntarios_max: turno.maxVoluntarios,
+                tipo: turno.tipo, // [FIX] Explicitly save the Turn Type
                 capitan_id: null,
                 territorios: turno.territorios // [NEW] Save territories
             });
