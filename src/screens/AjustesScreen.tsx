@@ -498,7 +498,7 @@ import { getEventColor } from '../constants/eventTypes';
 type TabType = 'congregaciones' | 'sitios' | 'usuarios';
 
 function PanelGlobalView({ user, onLogout }: AjustesScreenProps) {
-  const { userService } = useUser();
+  const { userService, login } = useUser();
   const colors = useThemeColors();
   const [activeTab, setActiveTab] = useState<TabType>('congregaciones');
   const [searchTerm, setSearchTerm] = useState('');
@@ -602,10 +602,11 @@ function PanelGlobalView({ user, onLogout }: AjustesScreenProps) {
     if (!congForm.nombre || !congForm.circuito || !congForm.ciudad) return alert('Todos los campos son obligatorios');
     setIsSaving(true);
     try {
+      const payload = { ...congForm, adminIds: [], estado: 'MX' }; // MVP: Default state
       if (editingCongregacion) {
-        await congregacionService.update(editingCongregacion.id, congForm);
+        await congregacionService.update(editingCongregacion.id, payload);
       } else {
-        await congregacionService.create({ ...congForm, estado: 'NL' });
+        await congregacionService.create(payload);
       }
       await loadData();
       setShowCongregacionModal(false);
@@ -690,7 +691,13 @@ function PanelGlobalView({ user, onLogout }: AjustesScreenProps) {
     if (!editingUser) return;
     setIsSaving(true);
     try {
-      await userService.update(editingUser.id, userForm);
+      const updatedUser = await userService.update(editingUser.id, userForm);
+
+      // [FIX]: If we updated ourself, update local context immediately
+      if (editingUser.id === user.id) {
+        login(updatedUser);
+      }
+
       await loadData();
       setShowUserModal(false);
     } catch (error) {
