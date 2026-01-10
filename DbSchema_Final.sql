@@ -29,10 +29,12 @@ create table if not exists public.notificaciones (
 -- 5. Enable RLS for Notifications
 alter table public.notificaciones enable row level security;
 
+DROP POLICY IF EXISTS "Users can view their own notifications" ON public.notificaciones;
 create policy "Users can view their own notifications"
   on public.notificaciones for select
   using (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "Admins can insert notifications" ON public.notificaciones;
 create policy "Admins can insert notifications"
   on public.notificaciones for insert
   with check (true);
