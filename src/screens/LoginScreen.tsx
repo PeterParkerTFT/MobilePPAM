@@ -1,25 +1,23 @@
 import React, { useState, useEffect } from 'react';
-import { User, Congregacion } from '../types/models'; // Added Congregacion
+import { User, Congregacion } from '../types/models';
 import { UserRole, UserStatus } from '../types/enums';
 import { UserPlus, Lock, X, AlertCircle } from 'lucide-react';
-// import { congregaciones } from '../data/congregaciones'; // Removed static import
 import { CongregationCombobox } from '../components/CongregationCombobox';
 import { useUser } from '../contexts/UserContext';
-import { CongregacionService } from '../services/CongregacionService'; // [NEW]
+import { CongregacionService } from '../services/CongregacionService';
 
 const congregacionService = new CongregacionService();
 
-
 interface LoginScreenProps {
   onLogin: (user: User) => void;
+  startInRecoveryMode?: boolean;
 }
 
-type ViewState = 'split' | 'signup' | 'login';
+type ViewState = 'split' | 'signup' | 'login' | 'forgot_password' | 'update_password';
 
-export function LoginScreen({ onLogin }: LoginScreenProps) {
-  const { userService } = useUser();
-  const [viewState, setViewState] = useState<ViewState>('split');
-  const [selectedRole, setSelectedRole] = useState<UserRole>(UserRole.Voluntario);
+export function LoginScreen({ onLogin, startInRecoveryMode = false }: LoginScreenProps) {
+  const { userService, currentUser } = useUser();
+  const [viewState, setViewState] = useState<ViewState>(startInRecoveryMode ? 'update_password' : 'split');
 
   // Real data state
   const [congregacionesList, setCongregacionesList] = useState<Congregacion[]>([]);
@@ -40,7 +38,7 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
     telefono: '',
     password: '',
     role: UserRole.Voluntario,
-    congregacion: '' // Nueva propiedad para congregación
+    congregacion: ''
   });
 
   // Login form state
@@ -49,10 +47,21 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
     password: ''
   });
 
+  const [newPassword, setNewPassword] = useState(''); // For update password flow
+  const [resetEmail, setResetEmail] = useState('');
+
+  const resetToSplit = () => {
+    setViewState('split');
+    setSignupForm({ nombre: '', email: '', telefono: '', password: '', role: UserRole.Voluntario, congregacion: '' });
+    setLoginForm({ email: '', password: '' });
+    setResetEmail('');
+    setNewPassword('');
+  };
+
   const handleSignupSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Validar que TODOS los roles (incluido Voluntario y Ultra Admin) deben seleccionar congregación
+    // Validar que TODOS los roles
     if ((signupForm.role === UserRole.Capitan || signupForm.role === UserRole.AdminLocal || signupForm.role === UserRole.AdminGlobal || signupForm.role === UserRole.Voluntario) && !signupForm.congregacion) {
       alert('Por favor seleccione su congregación');
       return;
@@ -73,17 +82,15 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
         congregacion: signupForm.congregacion || '',
       };
 
-      const newUser = await userService.registerUser(userData, signupForm.password);
+      await userService.registerUser(userData, signupForm.password);
 
       // UX Improvement: Don't auto-login if email confirmation is required.
-      // Instead, show success message and switch to login view.
       alert('¡Cuenta creada con éxito! Hemos enviado un enlace de confirmación a tu correo electrónico. Por favor verifícalo antes de iniciar sesión.');
       resetToSplit();
       setViewState('login');
 
     } catch (error: any) {
       console.error('Registration error:', error);
-      // Supabase errors are often objects with a message property, but not Error instances
       const errorMessage = error?.message || (typeof error === 'string' ? error : 'Unknown error');
       alert('Error al registrar usuario: ' + errorMessage);
     }
@@ -98,7 +105,7 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
       if (user) {
         onLogin(user);
       } else {
-        alert('Usuario no encontrado o credenciales incorrectas');
+        alert('Usuario no encontrado o credenciales incorrectas. Si acaba de registrarse, verifique su correo electrónico para activar la cuenta.');
       }
     } catch (error) {
       console.error('Login error:', error);
@@ -106,10 +113,50 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
     }
   };
 
-  const resetToSplit = () => {
-    setViewState('split');
-    setSignupForm({ nombre: '', email: '', telefono: '', password: '', role: UserRole.Voluntario, congregacion: '' });
-    setLoginForm({ email: '', password: '' });
+  const handleResetPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!resetEmail) return;
+
+    try {
+      const success = await userService.resetPassword(resetEmail);
+      if (success) {
+        alert('Si el correo existe, recibirás un enlace para restablecer tu contraseña.');
+        resetToSplit();
+        setViewState('login');
+      } else {
+        alert('Error al enviar el correo de recuperación.');
+      }
+    } catch (error) {
+      console.error('Reset password error:', error);
+      alert('Error al solicitar recuperación.');
+    }
+  };
+
+  const handleUpdatePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (newPassword.length < 6) {
+      alert('La contraseña debe tener al menos 6 caracteres');
+      return;
+    }
+
+    try {
+      const success = await userService.updatePassword(newPassword);
+      if (success) {
+        alert('Contraseña actualizada correctamente. Por favor inicia sesión con tu nueva contraseña.');
+        // If logged in via recovery link, complete the flow
+        if (currentUser) {
+          onLogin(currentUser);
+        } else {
+          resetToSplit();
+          setViewState('login');
+        }
+      } else {
+        alert('Error al actualizar contraseña.');
+      }
+    } catch (error) {
+      console.error('Update password error:', error);
+      alert('Error al actualizar contraseña.');
+    }
   };
 
   return (
@@ -427,6 +474,7 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
                 <div className="text-right">
                   <button
                     type="button"
+                    onClick={() => setViewState('forgot_password')}
                     className="text-[#594396] text-sm font-light hover:underline"
                   >
                     ¿Olvidó su contraseña?
@@ -469,6 +517,113 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
                 <p className="text-[#999999] text-xs text-center italic mt-12">
                   "Hagan todas las cosas para la gloria de Dios" - 1 Cor. 10:31
                 </p>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {/* FORGOT PASSWORD VIEW */}
+        {viewState === 'forgot_password' && (
+          <div
+            className="absolute inset-0 bg-white flex flex-col transition-all duration-600 ease-in-out"
+            style={{ animation: 'fadeIn 600ms ease-in-out' }}
+          >
+            {/* Close Button */}
+            <button
+              onClick={() => setViewState('login')}
+              className="absolute top-4 right-4 w-11 h-11 flex items-center justify-center text-[#333333] hover:bg-[#F7F7F7] rounded-full transition-colors z-10"
+              style={{ touchAction: 'manipulation', minWidth: '44px', minHeight: '44px' }}
+            >
+              <X className="w-6 h-6" strokeWidth={2} />
+            </button>
+
+            {/* Form Container */}
+            <div className="flex-1 flex flex-col px-6 pt-16 pb-8 overflow-y-auto">
+              {/* Header */}
+              <div className="text-center mb-12">
+                <Lock className="w-12 h-12 text-[#594396] mx-auto mb-4" strokeWidth={1.5} />
+                <h1 className="text-[#333333] text-3xl font-light mb-2">Recuperar Contraseña</h1>
+                <p className="text-[#666666] text-sm font-light">
+                  Ingrese su correo electrónico para recibir instrucciones
+                </p>
+              </div>
+
+              {/* Form */}
+              <form onSubmit={handleResetPassword} className="space-y-8">
+                {/* Email */}
+                <div>
+                  <label className="block text-[#333333] text-sm font-light mb-2">
+                    Correo Electrónico
+                  </label>
+                  <input
+                    type="email"
+                    required
+                    value={resetEmail}
+                    onChange={(e) => setResetEmail(e.target.value)}
+                    className="w-full bg-[#F7F7F7] border-b-2 border-[#E0E0E0] text-[#333333] px-4 py-3 outline-none focus:border-[#594396] transition-colors placeholder-[#999999]"
+                    placeholder="correo@ejemplo.com"
+                    style={{ minHeight: '44px' }}
+                  />
+                </div>
+
+                {/* Submit Button */}
+                <button
+                  type="submit"
+                  className="w-full bg-[#594396] text-white py-4 rounded-lg font-medium hover:bg-[#6d51b8] transition-colors mt-8"
+                  style={{ minHeight: '44px' }}
+                >
+                  Enviar Instrucciones
+                </button>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {/* UPDATE PASSWORD VIEW */}
+        {viewState === 'update_password' && (
+          <div
+            className="absolute inset-0 bg-white flex flex-col transition-all duration-600 ease-in-out"
+            style={{ animation: 'fadeIn 600ms ease-in-out' }}
+          >
+            {/* No close button for this view as it's a forced flow usually */}
+
+            {/* Form Container */}
+            <div className="flex-1 flex flex-col px-6 pt-16 pb-8 overflow-y-auto">
+              {/* Header */}
+              <div className="text-center mb-12">
+                <Lock className="w-12 h-12 text-[#594396] mx-auto mb-4" strokeWidth={1.5} />
+                <h1 className="text-[#333333] text-3xl font-light mb-2">Nueva Contraseña</h1>
+                <p className="text-[#666666] text-sm font-light">
+                  {currentUser?.email ? `Para ${currentUser.email}` : 'Establece tu nueva contraseña'}
+                </p>
+              </div>
+
+              {/* Form */}
+              <form onSubmit={handleUpdatePassword} className="space-y-8">
+                {/* New Password */}
+                <div>
+                  <label className="block text-[#333333] text-sm font-light mb-2">
+                    Nueva Contraseña
+                  </label>
+                  <input
+                    type="password"
+                    required
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    className="w-full bg-[#F7F7F7] border-b-2 border-[#E0E0E0] text-[#333333] px-4 py-3 outline-none focus:border-[#594396] transition-colors placeholder-[#999999]"
+                    placeholder="Mínimo 6 caracteres"
+                    style={{ minHeight: '44px' }}
+                  />
+                </div>
+
+                {/* Submit Button */}
+                <button
+                  type="submit"
+                  className="w-full bg-[#594396] text-white py-4 rounded-lg font-medium hover:bg-[#6d51b8] transition-colors mt-8"
+                  style={{ minHeight: '44px' }}
+                >
+                  Actualizar Contraseña
+                </button>
               </form>
             </div>
           </div>

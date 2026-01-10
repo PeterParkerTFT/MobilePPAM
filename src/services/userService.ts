@@ -19,6 +19,8 @@ export interface IUserRepository {
   create(data: Omit<User, 'id'>, password?: string): Promise<User>;
   findByEmail(email: string): Promise<User | null>;
   authenticate?(email: string, password: string): Promise<User | null>;
+  resetPassword(email: string): Promise<boolean>;
+  updatePassword(password: string): Promise<boolean>;
 }
 
 /**
@@ -39,6 +41,20 @@ export class UserService {
     const user = await this.repository.findByEmail(email);
     if (!user) return null;
     return user;
+  }
+
+  /**
+   * Envía un correo de recuperación de contraseña
+   */
+  async resetPassword(email: string): Promise<boolean> {
+    return this.repository.resetPassword(email);
+  }
+
+  /**
+   * Actualiza la contraseña del usuario actual
+   */
+  async updatePassword(password: string): Promise<boolean> {
+    return this.repository.updatePassword(password);
   }
 
   /**
@@ -387,6 +403,16 @@ export class MockUserRepository implements IUserRepository {
   async authenticate(email: string, password: string): Promise<User | null> {
     // Mock auth: accepts any password if user exists
     return this.findByEmail(email);
+  }
+
+  async resetPassword(email: string): Promise<boolean> {
+    console.log(`[MOCK] Password reset email sent to ${email}`);
+    return true;
+  }
+
+  async updatePassword(password: string): Promise<boolean> {
+    console.log(`[MOCK] Password updated to ${password}`);
+    return true;
   }
 
   // Helper para tests

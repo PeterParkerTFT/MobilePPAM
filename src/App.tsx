@@ -26,7 +26,7 @@ const turnoService = new TurnoService();
 const congregacionService = new CongregacionService();
 
 function AppContent() {
-  const { currentUser, login, logout } = useUser();
+  const { currentUser, login, logout, isPasswordRecovery } = useUser();
   const [activeTab, setActiveTab] = useState<'turnos' | 'mis-turnos' | 'voluntarios' | 'aprobaciones' | 'ajustes' | 'informes'>('turnos');
 
   // State for real data
@@ -126,6 +126,11 @@ function AppContent() {
     // In a real app we'd revert if this fails
     await turnoService.inscribirse(turnoId, userId, new Date().toISOString().split('T')[0]);
   };
+
+  // Handle Recovery Mode (Priority over standard login check)
+  if (isPasswordRecovery) {
+    return <LoginScreen onLogin={handleLogin} startInRecoveryMode={true} />;
+  }
 
   if (!currentUser) {
     return <LoginScreen onLogin={handleLogin} />;

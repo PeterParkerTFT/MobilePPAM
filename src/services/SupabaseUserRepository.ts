@@ -176,6 +176,36 @@ export class SupabaseUserRepository implements IUserRepository {
         return true;
     }
 
+    async resetPassword(email: string): Promise<boolean> {
+        if (!supabase) throw new Error('Supabase no está configurado');
+
+        const { error } = await supabase.auth.resetPasswordForEmail(email, {
+            redirectTo: 'http://localhost:3000/update-password', // Adjust for mobile check if needed
+        });
+
+        if (error) {
+            console.error('Error enviando correo de recuperación:', error);
+            return false;
+        }
+
+        return true;
+    }
+
+    async updatePassword(password: string): Promise<boolean> {
+        if (!supabase) throw new Error('Supabase no está configurado');
+
+        const { error } = await supabase.auth.updateUser({
+            password: password
+        });
+
+        if (error) {
+            console.error('Error actualizando contraseña:', error);
+            return false;
+        }
+
+        return true;
+    }
+
     private mapToUser(dbUser: any): User {
         return {
             id: dbUser.id,
