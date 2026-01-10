@@ -161,6 +161,7 @@ export class SupabaseUserRepository implements IUserRepository {
     }
 
     async delete(id: string): Promise<boolean> {
+        if (!supabase) throw new Error('Supabase no está configurado');
         console.warn('Delete not fully implemented for Auth Users. Only removing profile.');
 
         const { error } = await supabase
