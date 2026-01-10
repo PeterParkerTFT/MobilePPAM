@@ -8,6 +8,9 @@ ALTER TABLE turnos ADD COLUMN IF NOT EXISTS territorios text;
 -- 3. Support for Site Categories
 ALTER TABLE sitios ADD COLUMN IF NOT EXISTS event_type text;
 
+-- 4. Support for Captain Assignment
+ALTER TABLE turnos ADD COLUMN IF NOT EXISTS capitan_id uuid references auth.users(id);
+
 -- 4. Notifications Table (Fixes 404 Error)
 create table if not exists public.notificaciones (
   id uuid default gen_random_uuid() primary key,
