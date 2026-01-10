@@ -26,7 +26,7 @@ export function UserPicker({ onClose, onSelect, title = "Seleccionar Capitán" }
             // Filter only Capitan or Admins
             let q = supabase
                 .from('users')
-                .select('id, nombre, email, role, congregacion')
+                .select('id, nombre, email, role, congregacion, congregacion_nombre')
                 .in('role', [UserRole.Capitan, UserRole.AdminLocal, UserRole.AdminGlobal])
                 .limit(20);
 
@@ -62,11 +62,11 @@ export function UserPicker({ onClose, onSelect, title = "Seleccionar Capitán" }
                 {/* Search */}
                 <div className="p-3 border-b" style={{ borderColor: `rgb(${colors.ui.divider})` }}>
                     <div className="relative">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                         <input
                             type="text"
                             placeholder="Buscar capitán..."
-                            className="w-full pl-14 pr-4 py-3 rounded-xl text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all border border-transparent focus:border-blue-500"
+                            className="w-full pl-12 pr-4 py-3 rounded-xl text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all border border-transparent focus:border-blue-500"
                             value={query}
                             onChange={e => setQuery(e.target.value)}
                             autoFocus
@@ -83,7 +83,7 @@ export function UserPicker({ onClose, onSelect, title = "Seleccionar Capitán" }
                     ) : (
                         <div className="divide-y" style={{ borderColor: `rgb(${colors.ui.divider})` }}>
                             {users.map(u => {
-                                const congName = getCongregacionNombre(u.congregacion);
+                                const congName = u.congregacion_nombre || getCongregacionNombre(u.congregacion);
                                 const displayCong = congName === 'Congregación no encontrada' ? 'Sin congregación asignada' : congName;
 
                                 return (
