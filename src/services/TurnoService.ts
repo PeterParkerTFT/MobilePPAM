@@ -29,6 +29,12 @@ export class TurnoService {
         const { data: turnosTemplates, error: turnosError } = await query;
         if (turnosError) throw turnosError;
 
+        console.log(`[DEBUG] Turnos fetched: ${turnosTemplates?.length}`, turnosTemplates);
+        if (turnosTemplates?.length > 0) {
+            console.log('[DEBUG] First template sample:', turnosTemplates[0]);
+            console.log('[DEBUG] Template CongID:', turnosTemplates[0].sitios?.congregacion_id, 'Global:', turnosTemplates[0].sitios?.congregacion_id === null);
+        }
+
         // 2. Generar instancias para rango ampliado (Pasado y Futuro)
         // [HISTORY FIX] Fetch past 30 days + next 7 days
         const PAST_DAYS = 30;
@@ -83,9 +89,14 @@ export class TurnoService {
             // Filtrar templates que caen en este día de la semana
             const matchingTemplates = turnosTemplates.filter((t: any) => {
                 const templateDay = t.dia || '';
-                // Comparación robusta (ignora mayúsculas y acentos: 'Sábado' == 'sabado')
-                return normalizeString(templateDay) === normalizeString(dayName);
+                const match = normalizeString(templateDay) === normalizeString(dayName);
+                if (!match && dateStr.includes('2026')) {
+                    console.log(`[DEBUG] No Match: TPL=${normalizeString(templateDay)} vs DAY=${normalizeString(dayName)} (${dateStr})`);
+                }
+                return match;
             });
+
+            console.log(`[DEBUG] Date ${dateStr} (${dayName}): Matches ${matchingTemplates.length}`);
 
             matchingTemplates.forEach((t: any) => {
                 const inscritos = inscripcionesPorFecha[dateStr]?.[t.id] || [];
