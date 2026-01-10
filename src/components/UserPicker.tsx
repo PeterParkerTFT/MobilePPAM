@@ -1,12 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { X, Search, User as UserIcon } from 'lucide-react';
+import { X, Search, User as UserIcon, Shield } from 'lucide-react';
 import { User } from '../types/models';
-import { UserService } from '../services/userService'; // Assuming you have a UserService exported or accessible
-import { CongregacionService } from '../services/CongregacionService'; // Or wherever you get users
+import { UserRole, EnumHelpers } from '../types/enums';
+import { getCongregacionNombre } from '../data/congregaciones';
 import { useThemeColors } from '../hooks/useThemeColors';
-
-// NOTE: Ideally import an instantiated service or use a hook
-// For MVP we might instantiate locally if not passed effectively
 import { supabase } from '../lib/supabase';
 
 interface UserPickerProps {
@@ -15,19 +12,23 @@ interface UserPickerProps {
     title?: string;
 }
 
-export function UserPicker({ onClose, onSelect, title = "Seleccionar Usuario" }: UserPickerProps) {
+export function UserPicker({ onClose, onSelect, title = "Seleccionar Capitán" }: UserPickerProps) {
     const colors = useThemeColors();
     const [query, setQuery] = useState('');
     const [users, setUsers] = useState<any[]>([]);
     const [loading, setLoading] = useState(false);
 
-    // Quick fetch logic - Replace with UserService.searchUsers if robust
     useEffect(() => {
         const fetchUsers = async () => {
             setLoading(true);
             if (!supabase) return;
 
-            let q = supabase.from('users').select('id, nombre, email').limit(20);
+            // Filter only Capitan or Admins
+            let q = supabase
+                .from('users')
+                .select('id, nombre, email, role, congregacion')
+                .in('role', [UserRole.Capitan, UserRole.AdminLocal, UserRole.AdminGlobal])
+                .limit(20);
 
             if (query.length > 1) {
                 q = q.ilike('nombre', `%${query}%`);
@@ -64,7 +65,7 @@ export function UserPicker({ onClose, onSelect, title = "Seleccionar Usuario" }:
                         <Search className="absolute left-3 top-2.5 w-4 h-4 text-gray-400" />
                         <input
                             type="text"
-                            placeholder="Buscar por nombre..."
+                            placeholder="Buscar capitán..."
                             className="w-full pl-9 pr-4 py-2 rounded-lg text-sm bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
                             value={query}
                             onChange={e => setQuery(e.target.value)}
@@ -78,7 +79,7 @@ export function UserPicker({ onClose, onSelect, title = "Seleccionar Usuario" }:
                     {loading ? (
                         <div className="p-4 text-center text-gray-400 text-sm">Cargando...</div>
                     ) : users.length === 0 ? (
-                        <div className="p-4 text-center text-gray-400 text-sm">No se encontraron usuarios</div>
+                        <div className="p-4 text-center text-gray-400 text-sm">No se encontraron capitanes</div>
                     ) : (
                         <div className="divide-y" style={{ borderColor: `rgb(${colors.ui.divider})` }}>
                             {users.map(u => (
@@ -87,12 +88,18 @@ export function UserPicker({ onClose, onSelect, title = "Seleccionar Usuario" }:
                                     onClick={() => onSelect(u.id, u.nombre)}
                                     className="w-full p-3 flex items-center gap-3 hover:bg-black/5 transition-colors text-left"
                                 >
-                                    <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600">
-                                        <UserIcon className="w-4 h-4" />
+                                    <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 flex-shrink-0">
+                                        <Shield className="w-5 h-5" />
                                     </div>
-                                    <div>
-                                        <div className="font-medium text-sm">{u.nombre}</div>
-                                        <div className="text-xs text-gray-500">{u.email}</div>
+                                    <div className="flex-1 min-w-0">
+                                        <div className="font-medium text-sm text-gray-900 truncate">{u.nombre}</div>
+                                        <div className="text-xs text-gray-500 truncate">
+                                            {getCongregacionNombre(u.congregacion)}
+                                        </div>
+                                        {/* Optional: Show role label if needed */}
+                                        <div className="text-[10px] uppercase font-bold text-blue-600 mt-0.5">
+                                            {EnumHelpers.getRoleLabel(u.role)}
+                                        </div>
                                     </div>
                                 </button>
                             ))}
