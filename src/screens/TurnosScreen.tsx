@@ -323,6 +323,7 @@ export function TurnosScreen({ user, onLogout, turnos, capitanes, onInscripcion,
             onInscripcion(selectedTurno.id, user.id);
             setSelectedTurno(null);
           }}
+          onTurnoUpdated={onTurnoCreated}
         />
       )}
 
